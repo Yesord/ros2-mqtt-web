@@ -1,0 +1,17 @@
+build/
+install/
+log/
+devel/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+*.tmp
+*.log
+node_modules/
+.env
