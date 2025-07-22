@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2 Hello World MQTT 监控面板 - 深空主题</title>
+    <style>
+        /* 导入Google字体 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --dark-gradient: linear-gradient(135deg, #0c0c1d 0%, #1a1a2e 50%, #16213e 100%);
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-pink: #ec4899;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --surface-1: rgba(30, 41, 59, 0.4);
+            --surface-2: rgba(30, 41, 59, 0.6);
+            --surface-3: rgba(30, 41, 59, 0.8);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--dark-gradient);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: auto;
+            position: relative;
+        }
+
+        /* 动态背景效果 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.2) 0%, transparent 50%);
+            z-index: -1;
+            animation: backgroundShift 15s ease-in-out infinite;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { 
+                transform: scale(1) rotate(0deg);
+                opacity: 1; 
+            }
+            50% { 
+                transform: scale(1.1) rotate(1deg);
+                opacity: 0.8; 
+            }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 32px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 4s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f8fafc 0%, #a78bfa 30%, #ec4899 70%, #60a5fa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 0 50px rgba(139, 92, 246, 0.3);
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            padding: 20px;
+            background: var(--surface-1);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            position: relative;
+            z-index: 2;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-indicator::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            filter: brightness(1.3);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-indicator:hover::before {
+            opacity: 1;
+        }
+
+        .status-connected { 
+            background: linear-gradient(135deg, var(--accent-green) 0%, #059669 100%);
+            box-shadow: 0 6px 30px rgba(16, 185, 129, 0.4);
+        }
+        .status-disconnected { 
+            background: linear-gradient(135deg, var(--accent-red) 0%, #dc2626 100%);
+            box-shadow: 0 6px 30px rgba(239, 68, 68, 0.4);
+        }
+        .status-connecting { 
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #d97706 100%);
+            box-shadow: 0 6px 30px rgba(245, 158, 11, 0.4);
+        }
+
+        .time-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: var(--surface-1);
+            padding: 12px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 32px;
+        }
+
+        .panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .panel:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 60px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .panel h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-primary);
+            position: relative;
+        }
+
+        .panel h2::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-purple), transparent);
+            margin-left: 20px;
+            border-radius: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 20px;
+            background: var(--surface-2);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+            background: var(--surface-3);
+        }
+
+        .btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: var(--surface-2);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .message-display {
+            grid-column: 1 / -1;
+        }
+
+        .message-content {
+            background: var(--surface-1);
+            border-radius: 20px;
+            padding: 32px;
+            margin-top: 24px;
+            min-height: 200px;
+            border: 2px dashed var(--glass-border);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .message-content::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(transparent, rgba(139, 92, 246, 0.1), transparent);
+            animation: rotate 8s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .message-content.has-data {
+            border: 2px solid var(--accent-green);
+            background: linear-gradient(135deg, 
+                rgba(16, 185, 129, 0.1) 0%, 
+                var(--surface-1) 50%);
+        }
+
+        .message-content.has-data::before {
+            opacity: 1;
+        }
+
+        .message-text {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            word-break: break-all;
+            position: relative;
+            z-index: 1;
+        }
+
+        .message-meta {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-top: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        .stat-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(transparent, rgba(139, 92, 246, 0.1), transparent);
+            animation: rotate 6s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .message-history {
+            max-height: 400px;
+            overflow-y: auto;
+            background: var(--surface-1);
+            border-radius: 20px;
+            padding: 24px;
+            margin-top: 24px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .history-item {
+            background: var(--surface-2);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--accent-purple);
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            transform: translateX(8px);
+            background: var(--surface-3);
+        }
+
+        .history-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .history-time {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .history-content {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .loading-indicator {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top: 3px solid var(--accent-purple);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pulse {
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--surface-1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-purple);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a855f7;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🌌 ROS2 Hello World MQTT 监控面板</h1>
+            <div class="status-bar">
+                <div id="mqtt-status" class="status-indicator status-disconnected">
+                    <span class="loading-indicator" style="display: none;"></span>
+                    <span class="status-text">MQTT 未连接</span>
+                </div>
+                <div class="time-display">
+                    <span id="current-time">--:--:--</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard">
+            <!-- MQTT连接配置 -->
+            <div class="panel">
+                <h2>🔧 MQTT 连接配置</h2>
+                <div class="form-group">
+                    <label for="mqtt-host">服务器地址:</label>
+                    <input type="text" id="mqtt-host" value="localhost" placeholder="localhost">
+                </div>
+                <div class="form-group">
+                    <label for="mqtt-port">WebSocket端口:</label>
+                    <input type="number" id="mqtt-port" value="9001" placeholder="9001">
+                </div>
+                <div class="form-group">
+                    <label for="topic-prefix">话题前缀:</label>
+                    <input type="text" id="topic-prefix" value="ros2" placeholder="ros2">
+                </div>
+                <div class="form-group">
+                    <button id="connect-btn" class="btn">
+                        <span>🔌 连接 MQTT</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 消息订阅配置 -->
+            <div class="panel">
+                <h2>📡 消息订阅配置</h2>
+                <div class="form-group">
+                    <label for="hello-topic">Hello World 话题:</label>
+                    <input type="text" id="hello-topic" value="hello_world/data" placeholder="hello_world/data">
+                </div>
+                <div class="form-group">
+                    <label for="auto-clear">自动清理历史 (条数):</label>
+                    <input type="number" id="auto-clear" value="50" min="10" max="200">
+                </div>
+                <div class="form-group">
+                    <button id="subscribe-btn" class="btn" disabled>
+                        <span>📨 订阅话题</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 最新消息显示 -->
+            <div class="panel message-display">
+                <h2>💬 最新 Hello World 消息</h2>
+                <div id="message-content" class="message-content">
+                    <div style="color: var(--text-muted); font-size: 1.5rem;">
+                        🌟 等待 Hello World 消息...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div id="total-messages" class="stat-number">0</div>
+                <div class="stat-label">总消息数</div>
+            </div>
+            <div class="stat-card">
+                <div id="messages-per-minute" class="stat-number">0</div>
+                <div class="stat-label">每分钟消息数</div>
+            </div>
+            <div class="stat-card">
+                <div id="last-message-time" class="stat-number">--</div>
+                <div class="stat-label">最后消息时间</div>
+            </div>
+            <div class="stat-card">
+                <div id="connection-duration" class="stat-number">00:00</div>
+                <div class="stat-label">连接时长</div>
+            </div>
+        </div>
+
+        <!-- 消息历史记录 -->
+        <div class="panel">
+            <h2>📜 消息历史记录</h2>
+            <div style="margin-bottom: 20px; display: flex; gap: 16px;">
+                <button id="clear-history-btn" class="btn" style="background: linear-gradient(135deg, var(--accent-red) 0%, #dc2626 100%); width: auto; padding: 12px 24px;">
+                    🗑️ 清空历史
+                </button>
+                <button id="export-history-btn" class="btn" style="background: linear-gradient(135deg, var(--accent-green) 0%, #059669 100%); width: auto; padding: 12px 24px;">
+                    💾 导出数据
+                </button>
+            </div>
+            <div id="message-history" class="message-history">
+                <div style="text-align: center; color: var(--text-muted); padding: 40px;">
+                    📋 暂无消息历史
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 MQTT.js 库 -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    
+    <script>
+        class HelloWorldMQTTMonitor {
+            constructor() {
+                this.client = null;
+                this.isConnected = false;
+                this.messageHistory = [];
+                this.totalMessages = 0;
+                this.messagesThisMinute = 0;
+                this.connectionStartTime = null;
+                this.lastMessageTime = null;
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.startTimeUpdater();
+                this.startMessageCounter();
+            }
+
+            initializeElements() {
+                // 状态元素
+                this.statusIndicator = document.getElementById('mqtt-status');
+                this.statusText = this.statusIndicator.querySelector('.status-text');
+                this.loadingIndicator = this.statusIndicator.querySelector('.loading-indicator');
+                
+                // 输入元素
+                this.hostInput = document.getElementById('mqtt-host');
+                this.portInput = document.getElementById('mqtt-port');
+                this.topicPrefixInput = document.getElementById('topic-prefix');
+                this.helloTopicInput = document.getElementById('hello-topic');
+                this.autoClearInput = document.getElementById('auto-clear');
+                
+                // 按钮元素
+                this.connectBtn = document.getElementById('connect-btn');
+                this.subscribeBtn = document.getElementById('subscribe-btn');
+                this.clearHistoryBtn = document.getElementById('clear-history-btn');
+                this.exportHistoryBtn = document.getElementById('export-history-btn');
+                
+                // 显示元素
+                this.messageContent = document.getElementById('message-content');
+                this.messageHistory = document.getElementById('message-history');
+                this.currentTimeSpan = document.getElementById('current-time');
+                
+                // 统计元素
+                this.totalMessagesSpan = document.getElementById('total-messages');
+                this.messagesPerMinuteSpan = document.getElementById('messages-per-minute');
+                this.lastMessageTimeSpan = document.getElementById('last-message-time');
+                this.connectionDurationSpan = document.getElementById('connection-duration');
+            }
+
+            bindEvents() {
+                this.connectBtn.addEventListener('click', () => this.toggleConnection());
+                this.subscribeBtn.addEventListener('click', () => this.subscribeToTopic());
+                this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
+                this.exportHistoryBtn.addEventListener('click', () => this.exportHistory());
+            }
+
+            updateStatus(status, text) {
+                this.statusIndicator.className = `status-indicator status-${status}`;
+                this.statusText.textContent = text;
+                
+                if (status === 'connecting') {
+                    this.loadingIndicator.style.display = 'inline-block';
+                } else {
+                    this.loadingIndicator.style.display = 'none';
+                }
+            }
+
+            async toggleConnection() {
+                if (this.isConnected) {
+                    this.disconnect();
+                } else {
+                    await this.connect();
+                }
+            }
+
+            async connect() {
+                const host = this.hostInput.value.trim();
+                const port = parseInt(this.portInput.value);
+                
+                if (!host || !port) {
+                    alert('请输入有效的服务器地址和端口');
+                    return;
+                }
+
+                this.updateStatus('connecting', '连接中...');
+                this.connectBtn.disabled = true;
+
+                try {
+                    // 构建WebSocket URL
+                    const wsUrl = `ws://${host}:${port}`;
+                    console.log('连接到:', wsUrl);
+
+                    // 创建 MQTT 客户端
+                    this.client = mqtt.connect(wsUrl, {
+                        clientId: `hello_world_monitor_${Math.random().toString(16).substr(2, 8)}`,
+                        keepalive: 60,
+                        reconnectPeriod: 1000,
+                        connectTimeout: 30000,
+                        will: {
+                            topic: 'clients/hello_world_monitor',
+                            payload: 'offline',
+                            qos: 0,
+                            retain: false
+                        }
+                    });
+
+                    // 设置事件处理器
+                    this.client.on('connect', () => {
+                        console.log('MQTT 连接成功');
+                        this.isConnected = true;
+                        this.connectionStartTime = new Date();
+                        this.updateStatus('connected', 'MQTT 已连接');
+                        this.connectBtn.textContent = '🔌 断开连接';
+                        this.connectBtn.disabled = false;
+                        this.subscribeBtn.disabled = false;
+                    });
+
+                    this.client.on('error', (error) => {
+                        console.error('MQTT 连接错误:', error);
+                        this.updateStatus('disconnected', 'MQTT 连接失败');
+                        this.connectBtn.textContent = '🔌 连接 MQTT';
+                        this.connectBtn.disabled = false;
+                        this.subscribeBtn.disabled = true;
+                    });
+
+                    this.client.on('close', () => {
+                        console.log('MQTT 连接关闭');
+                        this.isConnected = false;
+                        this.updateStatus('disconnected', 'MQTT 未连接');
+                        this.connectBtn.textContent = '🔌 连接 MQTT';
+                        this.connectBtn.disabled = false;
+                        this.subscribeBtn.disabled = true;
+                    });
+
+                    this.client.on('message', (topic, message) => {
+                        this.handleMessage(topic, message);
+                    });
+
+                } catch (error) {
+                    console.error('连接失败:', error);
+                    this.updateStatus('disconnected', 'MQTT 连接失败');
+                    this.connectBtn.disabled = false;
+                    alert('连接失败: ' + error.message);
+                }
+            }
+
+            disconnect() {
+                if (this.client) {
+                    this.client.end();
+                    this.client = null;
+                }
+                this.isConnected = false;
+                this.connectionStartTime = null;
+            }
+
+            subscribeToTopic() {
+                if (!this.isConnected || !this.client) {
+                    alert('请先连接 MQTT 服务器');
+                    return;
+                }
+
+                const topicPrefix = this.topicPrefixInput.value.trim();
+                const helloTopic = this.helloTopicInput.value.trim();
+                const fullTopic = `${topicPrefix}/${helloTopic}`;
+
+                console.log('订阅话题:', fullTopic);
+                
+                this.client.subscribe(fullTopic, (error) => {
+                    if (error) {
+                        console.error('订阅失败:', error);
+                        alert('订阅失败: ' + error.message);
+                    } else {
+                        console.log('订阅成功:', fullTopic);
+                        this.subscribeBtn.textContent = '✅ 已订阅';
+                        this.subscribeBtn.style.background = 'linear-gradient(135deg, var(--accent-green) 0%, #059669 100%)';
+                        setTimeout(() => {
+                            this.subscribeBtn.textContent = '📨 订阅话题';
+                            this.subscribeBtn.style.background = '';
+                        }, 2000);
+                    }
+                });
+            }
+
+            handleMessage(topic, message) {
+                try {
+                    const messageStr = message.toString();
+                    let messageData;
+                    
+                    console.log('收到消息:', topic, messageStr);
+
+                    // 尝试解析JSON
+                    try {
+                        messageData = JSON.parse(messageStr);
+                    } catch {
+                        // 如果不是JSON，直接使用字符串
+                        messageData = { data: messageStr };
+                    }
+
+                    // 提取Hello World消息内容
+                    let helloText = '';
+                    if (typeof messageData === 'object' && messageData !== null) {
+                        // 查找可能的数据字段
+                        helloText = messageData.data || messageData.message || messageData.content || 
+                                   messageData.text || JSON.stringify(messageData);
+                    } else {
+                        helloText = String(messageData);
+                    }
+
+                    // 更新显示
+                    this.updateMessageDisplay(helloText, topic);
+                    this.addToHistory(helloText, topic);
+                    this.updateStatistics();
+
+                } catch (error) {
+                    console.error('处理消息失败:', error);
+                }
+            }
+
+            updateMessageDisplay(messageText, topic) {
+                this.messageContent.className = 'message-content has-data pulse';
+                this.messageContent.innerHTML = `
+                    <div class="message-text">${this.escapeHtml(messageText)}</div>
+                    <div class="message-meta">
+                        话题: ${this.escapeHtml(topic)}<br>
+                        时间: ${new Date().toLocaleString()}
+                    </div>
+                `;
+
+                // 移除动画类
+                setTimeout(() => {
+                    this.messageContent.classList.remove('pulse');
+                }, 1000);
+            }
+
+            addToHistory(messageText, topic) {
+                const timestamp = new Date();
+                const historyItem = {
+                    text: messageText,
+                    topic: topic,
+                    timestamp: timestamp
+                };
+
+                this.messageHistory.unshift(historyItem);
+                
+                // 限制历史记录数量
+                const maxHistory = parseInt(this.autoClearInput.value) || 50;
+                if (this.messageHistory.length > maxHistory) {
+                    this.messageHistory = this.messageHistory.slice(0, maxHistory);
+                }
+
+                this.renderHistory();
+                this.lastMessageTime = timestamp;
+            }
+
+            renderHistory() {
+                const historyDiv = document.getElementById('message-history');
+                
+                if (this.messageHistory.length === 0) {
+                    historyDiv.innerHTML = `
+                        <div style="text-align: center; color: var(--text-muted); padding: 40px;">
+                            📋 暂无消息历史
+                        </div>
+                    `;
+                    return;
+                }
+
+                historyDiv.innerHTML = this.messageHistory.map(item => `
+                    <div class="history-item">
+                        <div class="history-time">${item.timestamp.toLocaleString()}</div>
+                        <div class="history-content">${this.escapeHtml(item.text)}</div>
+                        <div style="font-size: 0.8em; color: var(--text-muted); margin-top: 8px;">
+                            话题: ${this.escapeHtml(item.topic)}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateStatistics() {
+                this.totalMessages++;
+                this.messagesThisMinute++;
+                
+                this.totalMessagesSpan.textContent = this.totalMessages;
+                this.messagesPerMinuteSpan.textContent = this.messagesThisMinute;
+                
+                if (this.lastMessageTime) {
+                    this.lastMessageTimeSpan.textContent = this.lastMessageTime.toLocaleTimeString();
+                }
+            }
+
+            clearHistory() {
+                if (confirm('确定要清空所有消息历史吗？')) {
+                    this.messageHistory = [];
+                    this.renderHistory();
+                }
+            }
+
+            exportHistory() {
+                if (this.messageHistory.length === 0) {
+                    alert('没有消息历史可以导出');
+                    return;
+                }
+
+                const data = {
+                    exportTime: new Date().toISOString(),
+                    totalMessages: this.totalMessages,
+                    messageHistory: this.messageHistory
+                };
+
+                const jsonStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `hello_world_messages_${new Date().toISOString().slice(0, 19)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            startTimeUpdater() {
+                setInterval(() => {
+                    this.currentTimeSpan.textContent = new Date().toLocaleTimeString();
+                    
+                    if (this.connectionStartTime) {
+                        const duration = new Date() - this.connectionStartTime;
+                        const minutes = Math.floor(duration / 60000);
+                        const seconds = Math.floor((duration % 60000) / 1000);
+                        this.connectionDurationSpan.textContent = 
+                            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                }, 1000);
+            }
+
+            startMessageCounter() {
+                // 每分钟重置消息计数器
+                setInterval(() => {
+                    this.messagesThisMinute = 0;
+                    this.messagesPerMinuteSpan.textContent = '0';
+                }, 60000);
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new HelloWorldMQTTMonitor();
+        });
+    </script>
+</body>
+</html>

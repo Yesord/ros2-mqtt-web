@@ -1,0 +1,111 @@
+# ROS2-MQTT多话题桥接配置文件
+# 配置文件版本
+version: "1.0"
+
+# 全局MQTT配置
+mqtt_global:
+  broker_host: "localhost"
+  broker_port: 1883
+  topic_prefix: "ros2"
+  client_id_prefix: "ros_mqtt_bridge"
+  keepalive: 120  # 增加心跳间隔，避免频繁重连
+  qos: 1
+  username: ""
+  password: ""
+
+# 全局桥接配置
+bridge_global:
+  enable_statistics: true
+  enable_heartbeat: true
+  message_history_size: 50  # 减少历史记录大小，节省内存
+  connection_check_interval: 5.0  # 更频繁的连接检查
+  stats_publish_interval: 30.0
+  heartbeat_interval: 60.0
+
+# 话题桥接配置列表
+bridges:
+  - name: "hello_world_bridge" # 桥接器唯一标识名
+    description: "Hello World消息桥接" # 人类可读的描述
+    enabled: true  # 是否启用此桥接器
+    ros_config:
+      topic: "/hello_world" # 要订阅的ROS话题
+      message_type: "std_msgs/String" # ROS消息类型
+      data_field: "data" # 要提取的数据字段
+      queue_size: 10 # ROS订阅队列大小
+    mqtt_config:
+      topic_name: "hello_world" # MQTT主题名 (不含前缀)
+      topic_suffix: "data" # MQTT主题后缀
+      qos: 0 # 此桥接器的QoS等级 0 最多交付一次 1 至少交付一次 2 只交付一次
+      retain: false # 是否保留消息
+    metadata:
+      source_node: "hello_world_publisher" # 源ROS节点名
+      frame_id: "hello_world_frame" # 坐标系ID
+    
+  - name: "turtle_cmd_vel_bridge" 
+    description: "小海龟速度命令桥接"
+    enabled: true
+    ros_config:
+      topic: "/turtle1/cmd_vel"
+      message_type: "geometry_msgs/Twist"
+      data_field: "linear.x,angular.z"  # 提取线速度和角速度
+      queue_size: 10
+    mqtt_config:
+      topic_name: "turtle"
+      topic_suffix: "cmd_vel"
+      qos: 1
+      retain: false
+    metadata:
+      source_node: "teleop_turtle"
+      frame_id: "turtle_frame"
+  
+  - name: "IMU_bridge" 
+    description: "GPS经纬度数据桥接"
+    enabled: true
+    ros_config:
+      topic: "/gps/fix"
+      message_type: "sensor_msgs/NavSatFix"
+      data_field: "latitude,longitude"  # 提取GPS经纬度信息
+      queue_size: 10
+    mqtt_config:
+      topic_name: "gps"
+      topic_suffix: "fix"
+      qos: 0
+      retain: false
+    metadata:
+      source_node: "ros_bridge"
+      frame_id: "gps_frame"
+
+  - name: "Image_bridge" 
+    description: "图像元数据桥接"
+    enabled: true
+    ros_config:
+      topic: "/image_raw"
+      message_type: "sensor_msgs/Image"
+      data_field: "height,width,encoding"  # 提取图像元数据信息
+      queue_size: 10
+    mqtt_config:
+      topic_name: "image_raw"
+      topic_suffix: "metadata"
+      qos: 1
+      retain: false
+    metadata:
+      source_node: "ros_bridge"
+      frame_id: "image_frame"
+
+  - name: "Compressed_Image_Data_bridge" 
+    description: "压缩图像完整数据桥接(Base64编码)"
+    enabled: true  # 启用压缩图像数据传输
+    ros_config:
+      topic: "/image_raw/compressed"
+      message_type: "sensor_msgs/CompressedImage"
+      data_field: "data"  # 传输压缩后的图像二进制数据
+      queue_size: 5  # 增加队列大小，避免消息丢失
+    mqtt_config:
+      topic_name: "image_compressed" 
+      topic_suffix: "data"
+      qos: 1  # 使用QoS 0减少开销，提高性能
+      retain: false
+    metadata:
+      source_node: "ros_bridge"
+      frame_id: "camera_frame"
+

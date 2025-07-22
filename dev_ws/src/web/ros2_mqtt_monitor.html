@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2 MQTT 监控面板 - Bento风格</title>
+    <style>
+        /* 导入Google字体 - Bento风格使用SF Pro Display / Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=SF+Mono:wght@400;500;600&display=swap');
+        
+        :root {
+            /* Bento风格色彩系统 */
+            --bg-primary: #fafafa;
+            --bg-secondary: #f5f5f5;
+            --bg-tertiary: #e5e5e5;
+            --surface-white: #ffffff;
+            --surface-light: #f8f9fa;
+            --surface-medium: #e9ecef;
+            --surface-dark: #dee2e6;
+            
+            /* 文字颜色 */
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+            --text-white: #ffffff;
+            
+            /* 品牌色彩 */
+            --accent-blue: #007aff;
+            --accent-green: #34c759;
+            --accent-orange: #ff9500;
+            --accent-red: #ff3b30;
+            --accent-purple: #af52de;
+            --accent-pink: #ff2d92;
+            --accent-yellow: #ffcc02;
+            --accent-indigo: #5856d6;
+            
+            /* 渐变 */
+            --gradient-blue: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+            --gradient-green: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+            --gradient-orange: linear-gradient(135deg, #ff9500 0%, #ff6b35 100%);
+            --gradient-purple: linear-gradient(135deg, #af52de 0%, #ff2d92 100%);
+            
+            /* 阴影系统 */
+            --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            
+            /* 边距系统 */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-2xl: 3rem;
+            
+            /* 圆角系统 */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-2xl: 24px;
+            --radius-full: 50px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 14px;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--spacing-xl);
+            min-height: 100vh;
+        }
+
+        /* Bento网格布局 */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: repeat(auto-fit, minmax(120px, auto));
+            gap: var(--spacing-lg);
+            grid-auto-rows: minmax(120px, auto);
+        }
+
+        /* Bento卡片基础样式 */
+        .bento-card {
+            background: var(--surface-white);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--surface-medium);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bento-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--surface-dark);
+        }
+
+        /* 网格区域定义 */
+        .header-card {
+            grid-column: 1 / -1;
+            grid-row: 1 / 2;
+            background: var(--gradient-blue);
+            color: var(--text-white);
+            text-align: center;
+            padding: var(--spacing-2xl);
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .status-card {
+            grid-column: 1 / 5;
+            grid-row: 2 / 3;
+            background: var(--surface-white);
+        }
+
+        .config-card {
+            grid-column: 5 / 9;
+            grid-row: 2 / 4;
+            background: var(--surface-white);
+        }
+
+        .topics-management-card {
+            grid-column: 9 / -1;
+            grid-row: 2 / 4;
+            background: var(--surface-white);
+        }
+
+        .stats-card {
+            grid-column: 1 / 5;
+            grid-row: 3 / 4;
+            background: var(--gradient-green);
+            color: var(--text-white);
+        }
+
+        .active-topics-card {
+            grid-column: 1 / 9;
+            grid-row: 4 / 6;
+            background: var(--surface-white);
+        }
+
+        .quick-actions-card {
+            grid-column: 9 / -1;
+            grid-row: 4 / 5;
+            background: var(--surface-light);
+        }
+
+        .subscribed-topics-card {
+            grid-column: 9 / -1;
+            grid-row: 5 / 6;
+            background: var(--surface-white);
+        }
+
+        .messages-display-card {
+            grid-column: 1 / -1;
+            grid-row: 6 / -1;
+            background: var(--surface-white);
+            min-height: 600px;
+        }
+
+        /* 标题样式 */
+        .header-card h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: var(--spacing-sm);
+            letter-spacing: -0.02em;
+        }
+
+        .header-card p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .card-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-md);
+            font-weight: 500;
+        }
+
+        /* 状态指示器 */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-lg);
+            background: var(--surface-light);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: var(--radius-full);
+            background: var(--accent-red);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--accent-green);
+        }
+
+        .status-dot.connecting {
+            background: var(--accent-orange);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .status-text {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .time-display {
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: var(--surface-medium);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-sm);
+        }
+
+        /* 表单元素 */
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: var(--spacing-md);
+            background: var(--surface-light);
+            border: 1px solid var(--surface-medium);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+            background: var(--surface-white);
+        }
+
+        /* 按钮系统 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--accent-blue);
+            color: var(--text-white);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+            background: #0056b3;
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: var(--surface-medium);
+            color: var(--text-tertiary);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-primary { background: var(--accent-blue); }
+        .btn-success { background: var(--accent-green); }
+        .btn-warning { background: var(--accent-orange); }
+        .btn-danger { background: var(--accent-red); }
+        .btn-purple { background: var(--accent-purple); }
+
+        .btn-small {
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 0.75rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .btn-large {
+            padding: var(--spacing-lg) var(--spacing-xl);
+            font-size: 1rem;
+            border-radius: var(--radius-lg);
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-md);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-white);
+            margin-bottom: var(--spacing-xs);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 话题卡片 */
+        .topics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-lg);
+        }
+
+        .topic-card {
+            background: var(--surface-light);
+            border: 1px solid var(--surface-medium);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .topic-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent-blue);
+        }
+
+        .topic-card.active {
+            border-color: var(--accent-green);
+            background: var(--surface-white);
+        }
+
+        .topic-card.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-green);
+            border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+        }
+
+        .topic-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .topic-name {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .topic-status {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background: rgba(52, 199, 89, 0.1);
+            color: var(--accent-green);
+        }
+
+        .status-inactive {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--accent-red);
+        }
+
+        .topic-content {
+            background: var(--surface-white);
+            border: 1px solid var(--surface-medium);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            min-height: 120px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: var(--text-secondary);
+        }
+
+        .topic-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: var(--spacing-md);
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+        }
+
+        .topic-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        /* 标签系统 */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: var(--surface-medium);
+            color: var(--text-secondary);
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag-blue { background: rgba(0, 122, 255, 0.1); color: var(--accent-blue); }
+        .tag-green { background: rgba(52, 199, 89, 0.1); color: var(--accent-green); }
+        .tag-orange { background: rgba(255, 149, 0, 0.1); color: var(--accent-orange); }
+        .tag-red { background: rgba(255, 59, 48, 0.1); color: var(--accent-red); }
+
+        /* 列表样式 */
+        .topic-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .topic-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            background: var(--surface-light);
+            border: 1px solid var(--surface-medium);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-sm);
+            transition: all 0.2s ease;
+        }
+
+        .topic-item:hover {
+            background: var(--surface-white);
+            border-color: var(--accent-blue);
+            transform: translateX(2px);
+        }
+
+        .topic-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .topic-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--surface-medium);
+            border-top: 2px solid var(--accent-blue);
+            border-radius: var(--radius-full);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--surface-light);
+            border-radius: var(--radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--surface-dark);
+            border-radius: var(--radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: var(--text-tertiary);
+        }
+
+        .empty-icon {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-md);
+            opacity: 0.6;
+        }
+
+        .empty-text {
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .empty-subtext {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .bento-grid {
+                grid-template-columns: repeat(8, 1fr);
+            }
+            
+            .status-card { grid-column: 1 / -1; grid-row: 2 / 3; }
+            .config-card { grid-column: 1 / 5; grid-row: 3 / 5; }
+            .topics-management-card { grid-column: 5 / -1; grid-row: 3 / 5; }
+            .stats-card { grid-column: 1 / -1; grid-row: 5 / 6; }
+            .active-topics-card { grid-column: 1 / -1; grid-row: 6 / 8; }
+            .quick-actions-card { grid-column: 1 / 5; grid-row: 8 / 9; }
+            .subscribed-topics-card { grid-column: 5 / -1; grid-row: 8 / 9; }
+            .messages-display-card { grid-column: 1 / -1; grid-row: 9 / -1; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--spacing-md);
+            }
+            
+            .bento-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-md);
+            }
+            
+            .header-card,
+            .status-card,
+            .config-card,
+            .topics-management-card,
+            .stats-card,
+            .active-topics-card,
+            .quick-actions-card,
+            .subscribed-topics-card,
+            .messages-display-card {
+                grid-column: 1 / -1;
+            }
+            
+            .header-card h1 {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .topics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="bento-grid">
+            <!-- 页面标题卡片 -->
+            <div class="bento-card header-card">
+                <h1>🚀 ROS2 MQTT 监控面板</h1>
+                <p>实时监控多个ROS2话题的MQTT数据流</p>
+            </div>
+
+            <!-- 连接状态卡片 -->
+            <div class="bento-card status-card">
+                <h2 class="card-title">🔗 连接状态</h2>
+                <div class="status-indicator">
+                    <div id="status-dot" class="status-dot"></div>
+                    <div>
+                        <div id="status-text" class="status-text">未连接</div>
+                        <div class="time-display">
+                            <span id="current-time">--:--:--</span>
+                        </div>
+                    </div>
+                    <div class="loading" id="loading-indicator" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- MQTT配置卡片 -->
+            <div class="bento-card config-card">
+                <h2 class="card-title">⚙️ MQTT配置</h2>
+                <div class="form-group">
+                    <label class="form-label" for="mqtt-host">服务器地址</label>
+                    <input class="form-input" type="text" id="mqtt-host" value="localhost" placeholder="localhost">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mqtt-port">WebSocket端口</label>
+                    <input class="form-input" type="number" id="mqtt-port" value="9001" placeholder="9001">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="topic-prefix">话题前缀</label>
+                    <input class="form-input" type="text" id="topic-prefix" value="ros2" placeholder="ros2">
+                </div>
+                <button id="connect-btn" class="btn btn-primary btn-full">
+                    🔌 连接 MQTT
+                </button>
+            </div>
+
+            <!-- 话题管理卡片 -->
+            <div class="bento-card topics-management-card">
+                <h2 class="card-title">📡 话题管理</h2>
+                <div class="form-group">
+                    <label class="form-label" for="topic-name">话题名称</label>
+                    <input class="form-input" type="text" id="topic-name" placeholder="hello_world/data">
+                </div>
+                <button id="add-topic-btn" class="btn btn-success btn-full" disabled>
+                    ➕ 添加话题
+                </button>
+                
+                <div class="card-subtitle">预设话题</div>
+                <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
+                    <button class="btn btn-small btn-success" onclick="monitor.addPresetTopic('hello_world/data')">Hello World</button>
+                    <button class="btn btn-small btn-success" onclick="monitor.addPresetTopic('turtle/cmd_vel')">Turtle速度</button>
+                    <button class="btn btn-small btn-success" onclick="monitor.addPresetTopic('gps/fix')">GPS</button>
+                    <button class="btn btn-small btn-success" onclick="monitor.addPresetTopic('image_raw/metadata')">图像元数据</button>
+                </div>
+            </div>
+
+            <!-- 统计概览卡片 -->
+            <div class="bento-card stats-card">
+                <h2 class="card-title">� 实时统计</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div id="total-topics" class="stat-number">0</div>
+                        <div class="stat-label">订阅话题</div>
+                    </div>
+                    <div class="stat-item">
+                        <div id="total-messages" class="stat-number">0</div>
+                        <div class="stat-label">总消息数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div id="messages-per-minute" class="stat-number">0</div>
+                        <div class="stat-label">消息/分钟</div>
+                    </div>
+                    <div class="stat-item">
+                        <div id="active-topics" class="stat-number">0</div>
+                        <div class="stat-label">活跃话题</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 话题数据显示区域 -->
+            <div class="bento-card active-topics-card">
+                <h2 class="card-title">💬 话题数据流</h2>
+                <div id="topics-container" class="topics-grid">
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div class="empty-text">暂无活跃话题</div>
+                        <div class="empty-subtext">连接MQTT并订阅话题以查看数据</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快速操作卡片 -->
+            <div class="bento-card quick-actions-card">
+                <h2 class="card-title">⚡ 快速操作</h2>
+                <button id="clear-all-btn" class="btn btn-danger btn-full btn-small">
+                    🗑️ 清空所有话题
+                </button>
+                <button id="export-all-btn" class="btn btn-purple btn-full btn-small">
+                    💾 导出所有数据
+                </button>
+                <button id="refresh-btn" class="btn btn-warning btn-full btn-small">
+                    🔄 刷新连接
+                </button>
+            </div>
+
+            <!-- 已订阅话题列表 -->
+            <div class="bento-card subscribed-topics-card">
+                <h2 class="card-title">📋 已订阅话题</h2>
+                <div id="subscribed-topics" class="topic-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">📝</div>
+                        <div class="empty-text">暂无订阅</div>
+                        <div class="empty-subtext">添加话题开始监控</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 MQTT.js 库 -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    
+    <script>
+        class ROS2MQTTMonitor {
+            constructor() {
+                this.client = null;
+                this.isConnected = false;
+                this.subscribedTopics = new Map();
+                this.totalMessages = 0;
+                this.messagesThisMinute = 0;
+                this.connectionStartTime = null;
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.startUpdaters();
+            }
+
+            initializeElements() {
+                // 状态元素
+                this.statusDot = document.getElementById('status-dot');
+                this.statusText = document.getElementById('status-text');
+                this.loadingIndicator = document.getElementById('loading-indicator');
+                
+                // 输入元素
+                this.hostInput = document.getElementById('mqtt-host');
+                this.portInput = document.getElementById('mqtt-port');
+                this.topicPrefixInput = document.getElementById('topic-prefix');
+                this.topicNameInput = document.getElementById('topic-name');
+                
+                // 按钮元素
+                this.connectBtn = document.getElementById('connect-btn');
+                this.addTopicBtn = document.getElementById('add-topic-btn');
+                this.clearAllBtn = document.getElementById('clear-all-btn');
+                this.exportAllBtn = document.getElementById('export-all-btn');
+                this.refreshBtn = document.getElementById('refresh-btn');
+                
+                // 显示元素
+                this.currentTimeSpan = document.getElementById('current-time');
+                this.subscribedTopicsDiv = document.getElementById('subscribed-topics');
+                this.topicsContainer = document.getElementById('topics-container');
+                
+                // 统计元素
+                this.totalTopicsSpan = document.getElementById('total-topics');
+                this.totalMessagesSpan = document.getElementById('total-messages');
+                this.messagesPerMinuteSpan = document.getElementById('messages-per-minute');
+                this.activeTopicsSpan = document.getElementById('active-topics');
+            }
+
+            bindEvents() {
+                this.connectBtn.addEventListener('click', () => this.toggleConnection());
+                this.addTopicBtn.addEventListener('click', () => this.addTopic());
+                this.clearAllBtn.addEventListener('click', () => this.clearAllTopics());
+                this.exportAllBtn.addEventListener('click', () => this.exportAllData());
+                this.refreshBtn.addEventListener('click', () => this.refreshConnection());
+                
+                // 回车键添加话题
+                this.topicNameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !this.addTopicBtn.disabled) {
+                        this.addTopic();
+                    }
+                });
+            }
+
+            updateStatus(status, text) {
+                // 更新状态点
+                this.statusDot.className = `status-dot ${status}`;
+                this.statusText.textContent = text;
+                
+                // 显示/隐藏加载指示器
+                if (status === 'connecting') {
+                    this.loadingIndicator.style.display = 'inline-block';
+                } else {
+                    this.loadingIndicator.style.display = 'none';
+                }
+            }
+
+            async toggleConnection() {
+                if (this.isConnected) {
+                    this.disconnect();
+                } else {
+                    await this.connect();
+                }
+            }
+
+            async connect() {
+                const host = this.hostInput.value.trim();
+                const port = parseInt(this.portInput.value);
+                
+                if (!host || !port) {
+                    this.showNotification('请输入有效的服务器地址和端口', 'error');
+                    return;
+                }
+
+                this.updateStatus('connecting', '连接中...');
+                this.connectBtn.disabled = true;
+
+                try {
+                    const wsUrl = `ws://${host}:${port}`;
+                    console.log('连接到:', wsUrl);
+
+                    this.client = mqtt.connect(wsUrl, {
+                        clientId: `ros2_monitor_${Math.random().toString(16).substr(2, 8)}`,
+                        keepalive: 60,
+                        reconnectPeriod: 1000,
+                        connectTimeout: 30000
+                    });
+
+                    this.client.on('connect', () => {
+                        console.log('MQTT 连接成功');
+                        this.isConnected = true;
+                        this.connectionStartTime = new Date();
+                        this.updateStatus('connected', '已连接');
+                        this.connectBtn.textContent = '🔌 断开连接';
+                        this.connectBtn.disabled = false;
+                        this.addTopicBtn.disabled = false;
+                        this.showNotification('MQTT连接成功！', 'success');
+                    });
+
+                    this.client.on('error', (error) => {
+                        console.error('MQTT 连接错误:', error);
+                        this.updateStatus('', '连接失败');
+                        this.connectBtn.textContent = '🔌 连接 MQTT';
+                        this.connectBtn.disabled = false;
+                        this.addTopicBtn.disabled = true;
+                        this.showNotification('MQTT连接失败', 'error');
+                    });
+
+                    this.client.on('close', () => {
+                        console.log('MQTT 连接关闭');
+                        this.isConnected = false;
+                        this.updateStatus('', '未连接');
+                        this.connectBtn.textContent = '🔌 连接 MQTT';
+                        this.connectBtn.disabled = false;
+                        this.addTopicBtn.disabled = true;
+                    });
+
+                    this.client.on('message', (topic, message) => {
+                        this.handleMessage(topic, message);
+                    });
+
+                } catch (error) {
+                    console.error('连接失败:', error);
+                    this.updateStatus('', '连接失败');
+                    this.connectBtn.disabled = false;
+                    this.showNotification('连接失败: ' + error.message, 'error');
+                }
+            }
+
+            disconnect() {
+                if (this.client) {
+                    this.client.end();
+                    this.client = null;
+                }
+                this.isConnected = false;
+                this.connectionStartTime = null;
+            }
+
+            refreshConnection() {
+                if (this.isConnected) {
+                    this.disconnect();
+                    setTimeout(() => this.connect(), 1000);
+                } else {
+                    this.connect();
+                }
+            }
+
+            addTopic() {
+                const topicName = this.topicNameInput.value.trim();
+                if (!topicName) {
+                    this.showNotification('请输入话题名称', 'error');
+                    return;
+                }
+                this.addPresetTopic(topicName);
+                this.topicNameInput.value = '';
+            }
+
+            addPresetTopic(topicName) {
+                if (!this.isConnected) {
+                    this.showNotification('请先连接 MQTT 服务器', 'error');
+                    return;
+                }
+
+                const topicPrefix = this.topicPrefixInput.value.trim();
+                const fullTopic = `${topicPrefix}/${topicName}`;
+
+                if (this.subscribedTopics.has(fullTopic)) {
+                    this.showNotification('话题已存在', 'warning');
+                    return;
+                }
+
+                console.log('订阅话题:', fullTopic);
+                
+                this.client.subscribe(fullTopic, (error) => {
+                    if (error) {
+                        console.error('订阅失败:', error);
+                        this.showNotification('订阅失败: ' + error.message, 'error');
+                    } else {
+                        console.log('订阅成功:', fullTopic);
+                        this.subscribedTopics.set(fullTopic, {
+                            name: topicName,
+                            lastMessage: null,
+                            messageCount: 0,
+                            lastTime: null,
+                            isActive: false
+                        });
+                        this.updateTopicsDisplay();
+                        this.updateStatistics();
+                        this.showNotification(`成功订阅话题: ${topicName}`, 'success');
+                    }
+                });
+            }
+
+            removeTopic(fullTopic) {
+                if (this.client && this.isConnected) {
+                    this.client.unsubscribe(fullTopic);
+                }
+                const topicInfo = this.subscribedTopics.get(fullTopic);
+                this.subscribedTopics.delete(fullTopic);
+                this.updateTopicsDisplay();
+                this.updateStatistics();
+                this.showNotification(`已取消订阅: ${topicInfo.name}`, 'success');
+            }
+
+            clearAllTopics() {
+                if (this.subscribedTopics.size === 0) {
+                    this.showNotification('没有话题需要清空', 'warning');
+                    return;
+                }
+
+                if (confirm('确定要取消订阅所有话题吗？')) {
+                    for (const topic of this.subscribedTopics.keys()) {
+                        if (this.client && this.isConnected) {
+                            this.client.unsubscribe(topic);
+                        }
+                    }
+                    this.subscribedTopics.clear();
+                    this.updateTopicsDisplay();
+                    this.updateStatistics();
+                    this.showNotification('已清空所有话题', 'success');
+                }
+            }
+
+            handleMessage(topic, message) {
+                try {
+                    const messageStr = message.toString();
+                    let messageData;
+                    
+                    console.log('收到消息:', topic, messageStr.substring(0, 100));
+
+                    try {
+                        messageData = JSON.parse(messageStr);
+                    } catch {
+                        messageData = messageStr;
+                    }
+
+                    if (this.subscribedTopics.has(topic)) {
+                        const topicInfo = this.subscribedTopics.get(topic);
+                        topicInfo.lastMessage = messageData;
+                        topicInfo.messageCount++;
+                        topicInfo.lastTime = new Date();
+                        topicInfo.isActive = true;
+                        this.subscribedTopics.set(topic, topicInfo);
+                    }
+
+                    this.totalMessages++;
+                    this.messagesThisMinute++;
+                    this.updateTopicsDisplay();
+                    this.updateStatistics();
+
+                } catch (error) {
+                    console.error('处理消息失败:', error);
+                }
+            }
+
+            updateTopicsDisplay() {
+                // 更新已订阅话题列表
+                if (this.subscribedTopics.size === 0) {
+                    this.subscribedTopicsDiv.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📝</div>
+                            <div class="empty-text">暂无订阅</div>
+                            <div class="empty-subtext">添加话题开始监控</div>
+                        </div>
+                    `;
+                } else {
+                    this.subscribedTopicsDiv.innerHTML = Array.from(this.subscribedTopics.entries())
+                        .map(([fullTopic, info]) => `
+                            <div class="topic-item">
+                                <span class="topic-item-name">${info.name}</span>
+                                <span class="tag ${info.isActive ? 'tag-green' : 'tag-red'}">
+                                    ${info.messageCount}
+                                </span>
+                                <button class="btn btn-small btn-danger" onclick="monitor.removeTopic('${fullTopic}')">
+                                    ❌
+                                </button>
+                            </div>
+                        `).join('');
+                }
+
+                // 更新主区域话题卡片
+                if (this.subscribedTopics.size === 0) {
+                    this.topicsContainer.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <div class="empty-text">暂无活跃话题</div>
+                            <div class="empty-subtext">连接MQTT并订阅话题以查看数据</div>
+                        </div>
+                    `;
+                } else {
+                    this.topicsContainer.innerHTML = Array.from(this.subscribedTopics.entries())
+                        .map(([fullTopic, info]) => {
+                            const messagePreview = this.formatMessagePreview(info.lastMessage);
+                            const isActive = info.isActive && info.lastTime && 
+                                            (new Date() - info.lastTime) < 60000;
+                            
+                            return `
+                                <div class="topic-card ${isActive ? 'active' : ''}">
+                                    <div class="topic-header">
+                                        <div class="topic-name">${info.name}</div>
+                                        <div class="topic-status ${isActive ? 'status-active' : 'status-inactive'}">
+                                            ${isActive ? '🟢 活跃' : '🔴 静默'}
+                                        </div>
+                                    </div>
+                                    <div class="topic-content ${info.lastMessage ? 'has-data' : ''}">
+                                        ${messagePreview}
+                                    </div>
+                                    <div class="topic-meta">
+                                        <span>消息: ${info.messageCount}</span>
+                                        <span>${info.lastTime ? info.lastTime.toLocaleTimeString() : '无数据'}</span>
+                                    </div>
+                                    <div class="topic-controls">
+                                        <button class="btn btn-small btn-danger" onclick="monitor.removeTopic('${fullTopic}')">
+                                            ❌ 取消
+                                        </button>
+                                        <button class="btn btn-small btn-success" onclick="monitor.exportTopicData('${fullTopic}')">
+                                            💾 导出
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                }
+            }
+
+            formatMessagePreview(message) {
+                if (!message) {
+                    return '<div style="color: var(--text-tertiary); font-style: italic;">等待消息...</div>';
+                }
+
+                if (typeof message === 'object') {
+                    if (message.data !== undefined) {
+                        return `<div><strong>数据:</strong> ${this.escapeHtml(String(message.data))}</div>`;
+                    } else if (message.linear && message.angular) {
+                        return `<div><strong>线速度:</strong> ${message.linear.x || 0}<br><strong>角速度:</strong> ${message.angular.z || 0}</div>`;
+                    } else if (message.latitude && message.longitude) {
+                        return `<div><strong>纬度:</strong> ${message.latitude}<br><strong>经度:</strong> ${message.longitude}</div>`;
+                    } else {
+                        const preview = JSON.stringify(message, null, 2);
+                        return `<pre style="white-space: pre-wrap; font-size: 0.8em;">${this.escapeHtml(preview.substring(0, 200))}${preview.length > 200 ? '...' : ''}</pre>`;
+                    }
+                } else {
+                    const str = String(message);
+                    return `<div>${this.escapeHtml(str.substring(0, 200))}${str.length > 200 ? '...' : ''}</div>`;
+                }
+            }
+
+            updateStatistics() {
+                this.totalTopicsSpan.textContent = this.subscribedTopics.size;
+                this.totalMessagesSpan.textContent = this.totalMessages;
+                this.messagesPerMinuteSpan.textContent = this.messagesThisMinute;
+                
+                const now = new Date();
+                const activeCount = Array.from(this.subscribedTopics.values())
+                    .filter(info => info.lastTime && (now - info.lastTime) < 60000)
+                    .length;
+                this.activeTopicsSpan.textContent = activeCount;
+            }
+
+            exportTopicData(fullTopic) {
+                const topicInfo = this.subscribedTopics.get(fullTopic);
+                if (!topicInfo) return;
+
+                const data = {
+                    topic: fullTopic,
+                    exportTime: new Date().toISOString(),
+                    messageCount: topicInfo.messageCount,
+                    lastMessage: topicInfo.lastMessage,
+                    lastTime: topicInfo.lastTime
+                };
+
+                this.downloadJson(data, `${topicInfo.name}_${new Date().toISOString().slice(0, 19)}.json`);
+                this.showNotification(`已导出话题数据: ${topicInfo.name}`, 'success');
+            }
+
+            exportAllData() {
+                if (this.subscribedTopics.size === 0) {
+                    this.showNotification('没有数据可以导出', 'warning');
+                    return;
+                }
+
+                const allData = {
+                    exportTime: new Date().toISOString(),
+                    totalTopics: this.subscribedTopics.size,
+                    totalMessages: this.totalMessages,
+                    topics: Array.from(this.subscribedTopics.entries()).map(([topic, info]) => ({
+                        topic,
+                        name: info.name,
+                        messageCount: info.messageCount,
+                        lastMessage: info.lastMessage,
+                        lastTime: info.lastTime,
+                        isActive: info.isActive
+                    }))
+                };
+
+                this.downloadJson(allData, `ros2_mqtt_monitor_${new Date().toISOString().slice(0, 19)}.json`);
+                this.showNotification('已导出所有数据', 'success');
+            }
+
+            downloadJson(data, filename) {
+                const jsonStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            showNotification(message, type = 'info') {
+                // 简单的通知系统
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: 600;
+                    z-index: 1000;
+                    transition: all 0.3s ease;
+                    max-width: 300px;
+                `;
+                
+                switch (type) {
+                    case 'success':
+                        notification.style.background = 'var(--accent-green)';
+                        break;
+                    case 'error':
+                        notification.style.background = 'var(--accent-red)';
+                        break;
+                    case 'warning':
+                        notification.style.background = 'var(--accent-orange)';
+                        break;
+                    default:
+                        notification.style.background = 'var(--accent-blue)';
+                }
+                
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+
+            startUpdaters() {
+                // 时间更新器
+                setInterval(() => {
+                    this.currentTimeSpan.textContent = new Date().toLocaleTimeString();
+                }, 1000);
+
+                // 每分钟重置消息计数器
+                setInterval(() => {
+                    this.messagesThisMinute = 0;
+                    this.updateStatistics();
+                }, 60000);
+
+                // 定期更新显示
+                setInterval(() => {
+                    this.updateTopicsDisplay();
+                    this.updateStatistics();
+                }, 5000);
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // 初始化应用
+        let monitor;
+        document.addEventListener('DOMContentLoaded', () => {
+            monitor = new ROS2MQTTMonitor();
+        });
+    </script>
+</body>
+</html>
