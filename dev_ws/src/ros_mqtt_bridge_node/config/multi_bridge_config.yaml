@@ -8,8 +8,8 @@ mqtt_global:
   broker_port: 1883
   topic_prefix: "ros2"
   client_id_prefix: "ros_mqtt_bridge"
-  keepalive: 120  # 增加心跳间隔，避免频繁重连
-  qos: 1
+  keepalive: 120  # 心跳间隔
+  qos: 1 # 此MQTT的QoS等级 0 最多交付一次 1 至少交付一次 2 只交付一次
   username: ""
   password: ""
 
@@ -35,8 +35,8 @@ bridges:
     mqtt_config:
       topic_name: "hello_world" # MQTT主题名 (不含前缀)
       topic_suffix: "data" # MQTT主题后缀
-      qos: 0 # 此桥接器的QoS等级 0 最多交付一次 1 至少交付一次 2 只交付一次
-      retain: false # 是否保留消息
+      qos: 0 # 此桥接器的QoS等级 
+      retain: false # 是否保留消息 
     metadata:
       source_node: "hello_world_publisher" # 源ROS节点名
       frame_id: "hello_world_frame" # 坐标系ID

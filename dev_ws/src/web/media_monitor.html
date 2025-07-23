@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2 MQTT 图像视频流监控</title>
+    <link rel="stylesheet" href="css/media_monitor.css">
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>
+                        <span class="icon">📷</span>
+                        ROS2 MQTT 多媒体监控
+                    </h1>
+                    <p class="subtitle">实时图像与视频流监控系统</p>
+                </div>
+                <div class="header-right">
+                    <div class="connection-status" id="connectionStatus">
+                        <span class="status-dot disconnected"></span>
+                        <span class="status-text">未连接</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="main-content">
+            <!-- 连接配置卡片 -->
+            <div class="config-card">
+                <div class="card-header">
+                    <h3>🔧 连接配置</h3>
+                    <button id="toggleConfig" class="toggle-btn">折叠</button>
+                </div>
+                <div class="card-content" id="configContent">
+                    <div class="config-grid">
+                        <div class="config-group">
+                            <label for="brokerHost">MQTT服务器:</label>
+                            <input type="text" id="brokerHost" value="localhost" placeholder="localhost">
+                        </div>
+                        <div class="config-group">
+                            <label for="brokerPort">端口:</label>
+                            <input type="number" id="brokerPort" value="9001" placeholder="9001">
+                        </div>
+                        <div class="config-group">
+                            <label for="baseTopic">基础话题:</label>
+                            <input type="text" id="baseTopic" value="ros2/camera" placeholder="ros2/camera">
+                        </div>
+                        <div class="config-group">
+                            <button id="connectBtn" class="connect-btn">连接</button>
+                            <button id="disconnectBtn" class="disconnect-btn" disabled>断开</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主题订阅管理 -->
+            <div class="subscription-card">
+                <div class="card-header">
+                    <h3>📡 主题订阅</h3>
+                    <div class="subscription-controls">
+                        <input type="text" id="newTopicInput" placeholder="输入MQTT主题，如: ros2/camera/image">
+                        <select id="topicType">
+                            <option value="image">图像</option>
+                            <option value="video">视频流</option>
+                            <option value="depth">深度图</option>
+                            <option value="pointcloud">点云</option>
+                        </select>
+                        <button id="addTopicBtn" class="add-topic-btn">添加订阅</button>
+                    </div>
+                </div>
+                <div class="subscribed-topics" id="subscribedTopics">
+                    <!-- 订阅的主题列表将在这里显示 -->
+                </div>
+            </div>
+
+            <!-- 媒体显示区域 -->
+            <div class="media-grid" id="mediaGrid">
+                <!-- 媒体显示卡片将在这里动态添加 -->
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="stats-card">
+                <div class="card-header">
+                    <h3>📊 统计信息</h3>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">已订阅主题</div>
+                        <div class="stat-value" id="subscribedCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">接收消息数</div>
+                        <div class="stat-value" id="messageCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">活跃流数</div>
+                        <div class="stat-value" id="activeStreams">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">数据传输率</div>
+                        <div class="stat-value" id="dataRate">0 KB/s</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 侧边栏 - 控制面板 -->
+        <aside class="sidebar">
+            <div class="control-panel">
+                <h3>🎛️ 显示控制</h3>
+                
+                <div class="control-group">
+                    <label for="refreshRate">刷新率 (fps):</label>
+                    <input type="range" id="refreshRate" min="1" max="30" value="10">
+                    <span id="refreshRateValue">10</span>
+                </div>
+
+                <div class="control-group">
+                    <label for="imageQuality">图像质量:</label>
+                    <select id="imageQuality">
+                        <option value="original">原始</option>
+                        <option value="high">高质量</option>
+                        <option value="medium" selected>中等质量</option>
+                        <option value="low">低质量</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="autoResize"> 自动调整大小
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="showTimestamp" checked> 显示时间戳
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="showMetadata"> 显示元数据
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <button id="fullscreenBtn" class="control-btn">全屏模式</button>
+                    <button id="saveImageBtn" class="control-btn">保存当前图像</button>
+                    <button id="recordBtn" class="control-btn">开始录制</button>
+                </div>
+            </div>
+
+            <!-- 预设话题 -->
+            <div class="preset-topics">
+                <h3>🔖 预设话题</h3>
+                <div class="preset-list">
+                    <button class="preset-btn" data-topic="ros2/camera/test_image" data-type="image">
+                        测试图像
+                    </button>
+                    <button class="preset-btn" data-topic="ros2/camera/test_depth" data-type="depth">
+                        测试深度图
+                    </button>
+                    <button class="preset-btn" data-topic="ros2/camera/test_pointcloud" data-type="pointcloud">
+                        测试点云
+                    </button>
+                    <button class="preset-btn" data-topic="ros2/camera/image" data-type="image">
+                        摄像头图像
+                    </button>
+                    <button class="preset-btn" data-topic="ros2/camera/depth" data-type="depth">
+                        深度图像
+                    </button>
+                    <button class="preset-btn" data-topic="ros2/camera/compressed" data-type="image">
+                        压缩图像
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- 全屏媒体查看器 -->
+    <div id="fullscreenViewer" class="fullscreen-viewer" style="display: none;">
+        <div class="fullscreen-content">
+            <div class="fullscreen-header">
+                <h3 id="fullscreenTitle">全屏查看</h3>
+                <button id="exitFullscreenBtn" class="exit-btn">✕</button>
+            </div>
+            <div class="fullscreen-media-container">
+                <img id="fullscreenImage" style="display: none;">
+                <video id="fullscreenVideo" controls style="display: none;"></video>
+                <canvas id="fullscreenCanvas" style="display: none;"></canvas>
+            </div>
+            <div class="fullscreen-info">
+                <div id="fullscreenMetadata"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div id="notificationContainer" class="notification-container"></div>
+
+    <!-- 加载脚本 -->
+    <script src="js/media_monitor.js"></script>
+</body>
+</html>
