@@ -45,12 +45,22 @@ ros2 run ros_mqtt_bridge_node multi_bridge_manager
 # export ROS_DOMAIN_ID=66
 
 ```
+
+```bash
+
+# 一键启动 dev_ws目录下
+chmod +x ./start_ros_mqtt_node.sh
+./start_ros_mqtt_node.sh
+
+```
+
 4. **启动Web监控**
 ```bash
 cd /src/web
 chmod +x start_monitoring_web.sh
 ./start_monitoring_web.sh 
 ```
+
 5. **访问监控界面**
 ```bash
 打开浏览器访问 [localhost可以替换成你的服务器地址]
