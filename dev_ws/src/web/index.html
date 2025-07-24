@@ -3,155 +3,539 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROS2 MQTT Bridge 监控面板</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>ROS2智能车监控中心</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .monitor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .monitor-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            color: inherit;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .monitor-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-color);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .monitor-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .monitor-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+            border-color: var(--accent-color);
+        }
+
+        .monitor-card.gps {
+            --accent-color: #FF6B35;
+        }
+
+        .monitor-card.media {
+            --accent-color: #4ECDC4;
+        }
+
+        .monitor-card.multi {
+            --accent-color: #45B7D1;
+        }
+
+        .monitor-card.hello {
+            --accent-color: #96CEB4;
+        }
+
+        .monitor-card.total {
+            --accent-color: #FFEAA7;
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 20px;
+            background: var(--accent-color);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .card-description {
+            color: #718096;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .card-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .card-features li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        .card-features li i {
+            color: var(--accent-color);
+            margin-right: 8px;
+            width: 16px;
+        }
+
+        .card-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-new {
+            background: #e6fffa;
+            color: #319795;
+        }
+
+        .status-recommended {
+            background: #fef5e7;
+            color: #d69e2e;
+        }
+
+        .status-stable {
+            background: #f0fff4;
+            color: #38a169;
+        }
+
+        .system-status {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .system-status h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            background: #f7fafc;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-online {
+            background: #48bb78;
+        }
+
+        .status-offline {
+            background: #f56565;
+        }
+
+        .status-unknown {
+            background: #a0aec0;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: underline;
+        }
+
+        .quick-links {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .quick-links h3 {
+            color: white;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quick-link-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .quick-link {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+            text-decoration: none;
+            color: #2d3748;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quick-link:hover {
+            background: white;
+            transform: translateY(-2px);
+        }
+
+        .quick-link i {
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .monitor-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .container {
+                padding: 20px 15px;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .monitor-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .monitor-card:nth-child(1) { animation-delay: 0.1s; }
+        .monitor-card:nth-child(2) { animation-delay: 0.2s; }
+        .monitor-card:nth-child(3) { animation-delay: 0.3s; }
+        .monitor-card:nth-child(4) { animation-delay: 0.4s; }
+        .monitor-card:nth-child(5) { animation-delay: 0.5s; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <h1><i class="fas fa-robot"></i> ROS2 MQTT Bridge 监控面板</h1>
-            <div class="connection-status">
-                <span id="mqtt-status" class="status-indicator disconnected">
-                    <i class="fas fa-circle"></i> MQTT 未连接
-                </span>
-            </div>
-        </header>
+        <div class="header">
+            <h1><i class="fas fa-robot"></i> 监控中心</h1>
+            <p>选择您需要的监控面板</p>
+        </div>
 
-        <div class="dashboard">
-            <!-- 连接配置面板 -->
-            <div class="panel config-panel">
-                <h2><i class="fas fa-cog"></i> MQTT 连接配置</h2>
-                <div class="config-form">
-                    <div class="form-group">
-                        <label for="mqtt-host">MQTT 服务器地址:</label>
-                        <input type="text" id="mqtt-host" value="localhost" placeholder="localhost">
-                    </div>
-                    <div class="form-group">
-                        <label for="mqtt-port">端口:</label>
-                        <input type="number" id="mqtt-port" value="9001" placeholder="9001">
-                    </div>
-                    <div class="form-group">
-                        <label for="mqtt-topic-prefix">主题前缀:</label>
-                        <input type="text" id="mqtt-topic-prefix" value="ros2" placeholder="ros2">
-                    </div>
-                    <div class="form-group">
-                        <label for="mqtt-username">用户名 (可选):</label>
-                        <input type="text" id="mqtt-username" placeholder="username">
-                    </div>
-                    <div class="form-group">
-                        <label for="mqtt-password">密码 (可选):</label>
-                        <input type="password" id="mqtt-password" placeholder="password">
-                    </div>
-                    <div class="form-actions">
-                        <button id="connect-btn" class="btn btn-primary">
-                            <i class="fas fa-plug"></i> 连接
-                        </button>
-                        <button id="disconnect-btn" class="btn btn-secondary" disabled>
-                            <i class="fas fa-times"></i> 断开
-                        </button>
-                    </div>
+        <!-- 系统状态面板 -->
+        <div class="system-status">
+            <h3><i class="fas fa-server"></i> 系统状态</h3>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-indicator" id="mqtt-status"></div>
+                    <span>MQTT服务器</span>
                 </div>
-            </div>
-
-            <!-- Hello World 数据显示 -->
-            <div class="panel data-panel">
-                <h2><i class="fas fa-comments"></i> Hello World 消息</h2>
-                <div class="data-display">
-                    <div class="current-message">
-                        <h3>当前消息</h3>
-                        <div id="current-message-content" class="message-content">
-                            等待消息...
-                        </div>
-                        <div class="message-meta">
-                            <span id="message-count">消息数: 0</span>
-                            <span id="last-update">最后更新: --</span>
-                        </div>
-                    </div>
-                    <div class="message-history">
-                        <h3>消息历史 <button id="clear-history-btn" class="btn btn-small">清空</button></h3>
-                        <div id="message-history-list" class="history-list">
-                            <!-- 消息历史将在这里显示 -->
-                        </div>
-                    </div>
+                <div class="status-item">
+                    <div class="status-indicator" id="websocket-status"></div>
+                    <span>WebSocket连接</span>
                 </div>
-            </div>
-
-            <!-- 统计信息面板 -->
-            <div class="panel stats-panel">
-                <h2><i class="fas fa-chart-line"></i> 统计信息</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>桥接状态</h3>
-                        <div id="bridge-status" class="stat-value">未知</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>运行时间</h3>
-                        <div id="bridge-uptime" class="stat-value">--</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>已发布消息</h3>
-                        <div id="total-published" class="stat-value">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>消息频率</h3>
-                        <div id="message-frequency" class="stat-value">0 msg/s</div>
-                    </div>
+                <div class="status-item">
+                    <div class="status-indicator" id="ros2-status"></div>
+                    <span>ROS2桥接</span>
                 </div>
-                <div class="stats-actions">
-                    <button id="refresh-stats-btn" class="btn btn-secondary">
-                        <i class="fas fa-sync"></i> 刷新统计
-                    </button>
-                    <button id="reset-stats-btn" class="btn btn-warning">
-                        <i class="fas fa-redo"></i> 重置统计
-                    </button>
-                </div>
-            </div>
-
-            <!-- 控制面板 -->
-            <div class="panel control-panel">
-                <h2><i class="fas fa-gamepad"></i> 控制面板</h2>
-                <div class="control-buttons">
-                    <button id="get-history-btn" class="btn btn-info">
-                        <i class="fas fa-history"></i> 获取历史
-                    </button>
-                    <button id="heartbeat-btn" class="btn btn-success">
-                        <i class="fas fa-heartbeat"></i> 心跳检测
-                    </button>
-                    <button id="export-data-btn" class="btn btn-secondary">
-                        <i class="fas fa-download"></i> 导出数据
-                    </button>
-                </div>
-            </div>
-
-            <!-- 系统日志 -->
-            <div class="panel log-panel">
-                <h2><i class="fas fa-terminal"></i> 系统日志</h2>
-                <div class="log-container">
-                    <div id="log-content" class="log-content">
-                        <div class="log-entry info">
-                            <span class="timestamp">[${new Date().toLocaleTimeString()}]</span>
-                            <span class="level">INFO</span>
-                            <span class="message">系统已启动，等待MQTT连接...</span>
-                        </div>
-                    </div>
-                    <div class="log-actions">
-                        <button id="clear-log-btn" class="btn btn-small">清空日志</button>
-                        <button id="auto-scroll-btn" class="btn btn-small active">自动滚动</button>
-                    </div>
+                <div class="status-item">
+                    <div class="status-indicator" id="web-status"></div>
+                    <span>Web服务</span>
                 </div>
             </div>
         </div>
+
+        <!-- 快速链接 -->
+        <!-- <div class="quick-links">
+            <h3><i class="fas fa-rocket"></i> 快速启动</h3>
+            <div class="quick-link-grid">
+                <a href="gps_monitor.html" class="quick-link">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>GPS实时位置监控</span>
+                </a>
+                <a href="media_monitor_bento.html" class="quick-link">
+                    <i class="fas fa-video"></i>
+                    <span>Bento风格媒体监控</span>
+                </a>
+                <a href="ros2_mqtt_monitor.html" class="quick-link">
+                    <i class="fas fa-chart-line"></i>
+                    <span>多话题监控面板</span>
+                </a>
+                <a href="hello_world_monitor.html" class="quick-link">
+                    <i class="fas fa-comments"></i>
+                    <span>Hello World监控</span>
+                </a>
+            </div>
+        </div> -->
+
+        <!-- 监控面板网格 -->
+        <div class="monitor-grid">
+            <!-- GPS实时位置监控 -->
+            <a href="gps_monitor.html" class="monitor-card gps">
+                <div class="card-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <h3 class="card-title">GPS实时位置监控</h3>
+                <p class="card-description">基于高德地图的实时GPS位置追踪系统，支持轨迹记录和地址解析。</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> 实时位置显示</li>
+                    <li><i class="fas fa-check"></i> 轨迹路径记录</li>
+                    <li><i class="fas fa-check"></i> 地址智能解析</li>
+                    <li><i class="fas fa-check"></i> 移动统计分析</li>
+                </ul>
+                <!-- <span class="card-status status-new">新功能</span> -->
+            </a>
+
+            <!-- Bento风格媒体监控 -->
+            <a href="media_monitor_bento.html" class="monitor-card media">
+                <div class="card-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h3 class="card-title">图传监控</h3>
+                <p class="card-description">订阅图像话题，专注于Base64图像解码和视频流显示。</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> 优雅的界面设计</li>
+                    <li><i class="fas fa-check"></i> Base64图像解码</li>
+                    <li><i class="fas fa-check"></i> 多媒体流支持</li>
+                    <li><i class="fas fa-check"></i> 响应式布局</li>
+                </ul>
+                <!-- <span class="card-status status-recommended">推荐</span> -->
+            </a>
+
+            <!-- 多话题监控面板 -->
+            <a href="ros2_mqtt_monitor.html" class="monitor-card multi">
+                <div class="card-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3 class="card-title">多话题监控</h3>
+                <p class="card-description">支持多个ROS2话题同时监控，适用于复杂系统的综合监控需求。</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> 多话题订阅</li>
+                    <li><i class="fas fa-check"></i> 数据可视化</li>
+                    <li><i class="fas fa-check"></i> 实时统计分析</li>
+                    <li><i class="fas fa-check"></i> 历史数据查看</li>
+                </ul>
+                <!-- <span class="card-status status-stable">稳定版</span> -->
+            </a>
+
+            <!-- Hello World监控 -->
+            <!-- <a href="hello_world_monitor.html" class="monitor-card hello">
+                <div class="card-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3 class="card-title">Hello World监控</h3>
+                <p class="card-description">专门用于Hello World消息的简单监控，适合学习和测试使用。</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> 简单易用</li>
+                    <li><i class="fas fa-check"></i> 消息历史记录</li>
+                    <li><i class="fas fa-check"></i> 连接状态监控</li>
+                    <li><i class="fas fa-check"></i> 学习友好</li>
+                </ul>
+                <span class="card-status status-stable">基础版</span>
+            </a> -->
+
+            <!-- 综合监控面板 -->
+            <!-- <a href="total_monitor.html" class="monitor-card total">
+                <div class="card-icon">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <h3 class="card-title">综合监控面板</h3>
+                <p class="card-description">基础的MQTT消息监控界面，包含完整的连接配置和系统日志。</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> MQTT连接配置</li>
+                    <li><i class="fas fa-check"></i> 系统日志显示</li>
+                    <li><i class="fas fa-check"></i> 统计信息面板</li>
+                    <li><i class="fas fa-check"></i> 控制面板功能</li>
+                </ul>
+                <span class="card-status status-stable">经典版</span>
+            </a> -->
+        </div>
+
+        <div class="footer">
+            <p>
+                <i class="fas fa-heart" style="color: #e74c3c;"></i> 
+                ROS2 MQTT Bridge 监控系统 | 
+                <a href="https://github.com/ros/ros_bridge" target="_blank">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </p>
+        </div>
     </div>
 
-    <!-- 引入MQTT.js库 -->
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <!-- 引入Chart.js用于图表显示 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- 引入自定义JavaScript -->
-    <script src="js/mqtt-client.js"></script>
-    <script src="js/ui-controller.js"></script>
-    <script src="js/data-processor.js"></script>
-    <script src="js/main.js"></script>
+    <script>
+        // 系统状态检查
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSystemStatus();
+            
+            // 每10秒检查一次系统状态
+            setInterval(checkSystemStatus, 10000);
+        });
+
+        async function checkSystemStatus() {
+            // 检查MQTT服务器状态
+            checkMQTTStatus();
+            
+            // 检查WebSocket状态
+            checkWebSocketStatus();
+            
+            // Web服务状态（当前页面能加载说明Web服务正常）
+            updateStatus('web-status', 'online');
+        }
+
+        function checkMQTTStatus() {
+            // 尝试检查MQTT服务器状态
+            // 由于浏览器限制，无法直接检查TCP连接，这里模拟检查
+            updateStatus('mqtt-status', 'unknown');
+        }
+
+        function checkWebSocketStatus() {
+            try {
+                const ws = new WebSocket('ws://localhost:9001');
+                ws.onopen = function() {
+                    updateStatus('websocket-status', 'online');
+                    updateStatus('mqtt-status', 'online'); // 如果WebSocket可连接，说明MQTT也正常
+                    ws.close();
+                };
+                ws.onerror = function() {
+                    updateStatus('websocket-status', 'offline');
+                    updateStatus('mqtt-status', 'offline');
+                };
+                ws.onclose = function() {
+                    // 正常关闭，不改变状态
+                };
+                
+                // 超时检查
+                setTimeout(() => {
+                    if (ws.readyState === WebSocket.CONNECTING) {
+                        updateStatus('websocket-status', 'offline');
+                        updateStatus('mqtt-status', 'offline');
+                        ws.close();
+                    }
+                }, 3000);
+            } catch (error) {
+                updateStatus('websocket-status', 'offline');
+                updateStatus('mqtt-status', 'offline');
+            }
+        }
+
+        function updateStatus(elementId, status) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.className = `status-indicator status-${status}`;
+            }
+        }
+
+        // 初始化状态为未知
+        ['mqtt-status', 'websocket-status', 'ros2-status'].forEach(id => {
+            updateStatus(id, 'unknown');
+        });
+
+        // 检查ROS2桥接状态
+        setTimeout(() => {
+            updateStatus('ros2-status', 'unknown');
+        }, 1000);
+    </script>
 </body>
 </html>

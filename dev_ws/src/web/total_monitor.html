@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2 MQTT Bridge 监控面板</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-robot"></i> ROS2 MQTT Bridge 监控面板</h1>
+            <div class="connection-status">
+                <span id="mqtt-status" class="status-indicator disconnected">
+                    <i class="fas fa-circle"></i> MQTT 未连接
+                </span>
+            </div>
+        </header>
+
+        <div class="dashboard">
+            <!-- 连接配置面板 -->
+            <div class="panel config-panel">
+                <h2><i class="fas fa-cog"></i> MQTT 连接配置</h2>
+                <div class="config-form">
+                    <div class="form-group">
+                        <label for="mqtt-host">MQTT 服务器地址:</label>
+                        <input type="text" id="mqtt-host" value="localhost" placeholder="localhost">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqtt-port">端口:</label>
+                        <input type="number" id="mqtt-port" value="9001" placeholder="9001">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqtt-topic-prefix">主题前缀:</label>
+                        <input type="text" id="mqtt-topic-prefix" value="ros2" placeholder="ros2">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqtt-username">用户名 (可选):</label>
+                        <input type="text" id="mqtt-username" placeholder="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqtt-password">密码 (可选):</label>
+                        <input type="password" id="mqtt-password" placeholder="password">
+                    </div>
+                    <div class="form-actions">
+                        <button id="connect-btn" class="btn btn-primary">
+                            <i class="fas fa-plug"></i> 连接
+                        </button>
+                        <button id="disconnect-btn" class="btn btn-secondary" disabled>
+                            <i class="fas fa-times"></i> 断开
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hello World 数据显示 -->
+            <div class="panel data-panel">
+                <h2><i class="fas fa-comments"></i> Hello World 消息</h2>
+                <div class="data-display">
+                    <div class="current-message">
+                        <h3>当前消息</h3>
+                        <div id="current-message-content" class="message-content">
+                            等待消息...
+                        </div>
+                        <div class="message-meta">
+                            <span id="message-count">消息数: 0</span>
+                            <span id="last-update">最后更新: --</span>
+                        </div>
+                    </div>
+                    <div class="message-history">
+                        <h3>消息历史 <button id="clear-history-btn" class="btn btn-small">清空</button></h3>
+                        <div id="message-history-list" class="history-list">
+                            <!-- 消息历史将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 统计信息面板 -->
+            <div class="panel stats-panel">
+                <h2><i class="fas fa-chart-line"></i> 统计信息</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>桥接状态</h3>
+                        <div id="bridge-status" class="stat-value">未知</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>运行时间</h3>
+                        <div id="bridge-uptime" class="stat-value">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>已发布消息</h3>
+                        <div id="total-published" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>消息频率</h3>
+                        <div id="message-frequency" class="stat-value">0 msg/s</div>
+                    </div>
+                </div>
+                <div class="stats-actions">
+                    <button id="refresh-stats-btn" class="btn btn-secondary">
+                        <i class="fas fa-sync"></i> 刷新统计
+                    </button>
+                    <button id="reset-stats-btn" class="btn btn-warning">
+                        <i class="fas fa-redo"></i> 重置统计
+                    </button>
+                </div>
+            </div>
+
+            <!-- 控制面板 -->
+            <div class="panel control-panel">
+                <h2><i class="fas fa-gamepad"></i> 控制面板</h2>
+                <div class="control-buttons">
+                    <button id="get-history-btn" class="btn btn-info">
+                        <i class="fas fa-history"></i> 获取历史
+                    </button>
+                    <button id="heartbeat-btn" class="btn btn-success">
+                        <i class="fas fa-heartbeat"></i> 心跳检测
+                    </button>
+                    <button id="export-data-btn" class="btn btn-secondary">
+                        <i class="fas fa-download"></i> 导出数据
+                    </button>
+                </div>
+            </div>
+
+            <!-- 系统日志 -->
+            <div class="panel log-panel">
+                <h2><i class="fas fa-terminal"></i> 系统日志</h2>
+                <div class="log-container">
+                    <div id="log-content" class="log-content">
+                        <div class="log-entry info">
+                            <span class="timestamp">[${new Date().toLocaleTimeString()}]</span>
+                            <span class="level">INFO</span>
+                            <span class="message">系统已启动，等待MQTT连接...</span>
+                        </div>
+                    </div>
+                    <div class="log-actions">
+                        <button id="clear-log-btn" class="btn btn-small">清空日志</button>
+                        <button id="auto-scroll-btn" class="btn btn-small active">自动滚动</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入MQTT.js库 -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- 引入Chart.js用于图表显示 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入自定义JavaScript -->
+    <script src="js/mqtt-client.js"></script>
+    <script src="js/ui-controller.js"></script>
+    <script src="js/data-processor.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

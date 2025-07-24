@@ -41,6 +41,9 @@ sudo systemctl start mosquitto
 ros2 run hello_world_node hello_world_publisher
 # 终端2: 启动MQTT桥接节点
 ros2 run ros_mqtt_bridge_node multi_bridge_manager
+# 目前测试使用 ros_domain_id 一致的另一个ROS2上跑bag
+# export ROS_DOMAIN_ID=66
+
 ```
 4. **启动Web监控**
 ```bash
@@ -50,6 +53,9 @@ chmod +x start_monitoring_web.sh
 ```
 5. **访问监控界面**
 ```bash
-打开浏览器访问
-http://localhost:8080
+打开浏览器访问 [localhost可以替换成你的服务器地址]
+http://localhost:8080/index.html
+http://localhost:8080/media_monitor_bento.html
+http://localhost:8080/ros2_mqtt_monitor.html
+http://localhost:8080/hello_world_monitor.html
 ```

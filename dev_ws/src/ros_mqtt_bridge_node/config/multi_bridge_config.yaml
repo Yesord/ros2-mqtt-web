@@ -58,7 +58,7 @@ bridges:
       source_node: "teleop_turtle"
       frame_id: "turtle_frame"
   
-  - name: "IMU_bridge" 
+  - name: "GPS_bridge" 
     description: "GPS经纬度数据桥接"
     enabled: true
     ros_config:
