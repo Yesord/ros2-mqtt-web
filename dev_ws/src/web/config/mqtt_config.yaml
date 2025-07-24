@@ -1,0 +1,5 @@
+# ROS2 MQTT Monitor 配置文件
+mqtt:
+  host: localhost
+  port: 9001
+  topic_prefix: ros2

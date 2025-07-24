@@ -770,6 +770,8 @@
 
     <!-- 引入 MQTT.js 库 -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- 引入 js-yaml 用于解析 YAML 配置 -->
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
     
     <script>
         class ROS2MQTTMonitor {
@@ -780,10 +782,28 @@
                 this.totalMessages = 0;
                 this.messagesThisMinute = 0;
                 this.connectionStartTime = null;
-                
+
                 this.initializeElements();
                 this.bindEvents();
                 this.startUpdaters();
+                this.loadMQTTConfig();
+            }
+
+            async loadMQTTConfig() {
+                try {
+                    const resp = await fetch('config/mqtt_config.yaml');
+                    if (!resp.ok) return;
+                    const yamlText = await resp.text();
+                    const config = jsyaml.load(yamlText);
+                    if (config && config.mqtt) {
+                        if (this.hostInput) this.hostInput.value = config.mqtt.host || '';
+                        if (this.portInput) this.portInput.value = config.mqtt.port || '';
+                        if (this.topicPrefixInput) this.topicPrefixInput.value = config.mqtt.topic_prefix || '';
+                    }
+                } catch (e) {
+                    // 读取失败不影响页面
+                    console.warn('无法加载MQTT配置:', e);
+                }
             }
 
             initializeElements() {

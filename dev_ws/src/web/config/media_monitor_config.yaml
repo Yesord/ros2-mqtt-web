@@ -1,0 +1,6 @@
+# GPS 监控页面配置
+mqtt:
+  host: localhost
+  port: 9001
+  topic_prefix: ros2
+  topic: image_compressed/data

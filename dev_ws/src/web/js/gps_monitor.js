@@ -4,20 +4,20 @@
  */
 
 class GPSMonitor {
-    constructor() {
+    constructor(config) {
         // 地图相关
         this.map = null;
         this.marker = null;
         this.polyline = null;
         this.path = [];
         this.showTrail = true;
-        
+
         // GPS数据
         this.currentPosition = null;
         this.lastPosition = null;
         this.totalDistance = 0;
         this.messageCount = 0;
-        
+
         // 桥接器统计
         this.bridgeStats = {
             messageCount: 0,
@@ -25,24 +25,31 @@ class GPSMonitor {
             bridgeName: '',
             lastMessageId: 0
         };
-        
+
         // 连接状态
         this.wsConnected = false;
         this.gpsDataReceived = false;
         this.lastMessageTime = null;
         this.mqttConnected = false;
         this.subscriptionCompleted = false;
-        
+
         // MQTT客户端
         this.client = null;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
-        
+
         // 数据质量评估
         this.dataQuality = 'unknown';
         this.messageHistory = [];
         this.maxHistorySize = 50;
-        
+
+        // 配置参数
+        this.mqttConfig = config && config.mqtt ? config.mqtt : {};
+        this.mqttHost = this.mqttConfig.host || 'localhost';
+        this.mqttPort = this.mqttConfig.port || 9001;
+        this.mqttPrefix = this.mqttConfig.topic_prefix || 'ros2';
+        this.mqttTopic = this.mqttConfig.topic || 'gps/fix';
+
         this.initMap();
         this.initMQTTConnection();
         this.setupEventListeners();
@@ -184,9 +191,9 @@ class GPSMonitor {
      */
     connectToMQTTBroker() {
         try {
-            const wsUrl = 'ws://localhost:9001';
+            const wsUrl = `ws://${this.mqttHost}:${this.mqttPort}`;
             console.log('连接到MQTT服务器:', wsUrl);
-            
+
             this.client = mqtt.connect(wsUrl, {
                 clientId: `gps_monitor_${Math.random().toString(16).substr(2, 8)}`,
                 keepalive: 60,
@@ -274,7 +281,13 @@ class GPSMonitor {
      */
     subscribeToGPSTopics() {
         try {
-            const gpsTopics = ['ros2/gps/fix'];
+            // 支持配置多个话题，兼容字符串或数组
+            let gpsTopics = [];
+            if (Array.isArray(this.mqttTopic)) {
+                gpsTopics = this.mqttTopic.map(t => `${this.mqttPrefix}/${t}`);
+            } else {
+                gpsTopics = [`${this.mqttPrefix}/${this.mqttTopic}`];
+            }
 
             gpsTopics.forEach((topic) => {
                 this.client.subscribe(topic, { qos: 0 }, (error) => {
@@ -288,7 +301,7 @@ class GPSMonitor {
                     }
                 });
             });
-            
+
         } catch (error) {
             console.error('订阅GPS话题失败:', error);
             this.showMessage('GPS话题订阅失败', 'error');
@@ -838,7 +851,7 @@ class GPSMonitor {
         console.log('模拟接收GPS数据:', testData);
         
         this.handleGPSMessage({
-            topic: 'ros2/gps/fix',
+            topic: `${this.mqttPrefix}/${this.mqttTopic}`,
             payload: testData
         });
         
@@ -872,7 +885,7 @@ function testGPSData() {
 }
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // 检查高德地图API是否加载
     if (typeof AMap === 'undefined') {
         const messageArea = document.getElementById('messageArea');
@@ -887,6 +900,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // 初始化GPS监控器
-    window.gpsMonitor = new GPSMonitor();
+    // 动态加载 js-yaml
+    function loadJsYaml() {
+        return new Promise((resolve, reject) => {
+            if (window.jsyaml) return resolve(window.jsyaml);
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
+            script.onload = () => resolve(window.jsyaml);
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    let config = {};
+    try {
+        await loadJsYaml();
+        const resp = await fetch('config/gps_monitor_config.yaml');
+        if (resp.ok) {
+            const yamlText = await resp.text();
+            config = window.jsyaml.load(yamlText) || {};
+        }
+    } catch (e) {
+        console.warn('无法加载GPS配置:', e);
+    }
+
+    // 初始化GPS监控器，传入配置
+    window.gpsMonitor = new GPSMonitor(config);
 });

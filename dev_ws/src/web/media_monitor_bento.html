@@ -6,6 +6,8 @@
     <title>ROS2 MQTT 图像流监控</title>
     <link rel="stylesheet" href="css/media_monitor_bento.css">
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- 引入 js-yaml 用于解析 YAML 配置 -->
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
 </head>
 <body>
     <div class="bento-container">
@@ -206,5 +208,26 @@
 
     <!-- 加载脚本 -->
     <script src="js/media_monitor_bento.js"></script>
+    <script>
+    // 自动读取 config/media_monitor_config.yaml 并填充 MQTT 配置
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const resp = await fetch('config/media_monitor_config.yaml');
+            if (!resp.ok) return;
+            const yamlText = await resp.text();
+            const config = jsyaml.load(yamlText);
+            if (config && config.mqtt) {
+                const hostInput = document.getElementById('brokerHost');
+                const portInput = document.getElementById('brokerPort');
+                const clientIdInput = document.getElementById('clientId');
+                if (hostInput) hostInput.value = config.mqtt.host || '';
+                if (portInput) portInput.value = config.mqtt.port || '';
+                if (clientIdInput && config.mqtt.client_id) clientIdInput.value = config.mqtt.client_id;
+            }
+        } catch (e) {
+            console.warn('无法加载媒体监控MQTT配置:', e);
+        }
+    });
+    </script>
 </body>
 </html>

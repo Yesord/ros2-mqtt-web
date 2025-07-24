@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2-MQTT GPS实时位置监控</title>
+    
+    <!-- 高德地图API - 请将YOUR_AMAP_KEY替换为您的高德地图API密钥 -->
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=YOUR_AMAP_KEY"></script>
+    
+    <!-- 外部样式表 -->
+    <link rel="stylesheet" href="css/gps_monitor.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="header">
+                <h1>🗺️ GPS位置监控</h1>
+                <p>实时GPS位置追踪</p>
+            </div>
+
+            <!-- 连接状态 -->
+            <div class="status-card">
+                <div class="status-header">
+                    <div class="status-icon connection">📡</div>
+                    <div class="status-title">连接状态</div>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">WebSocket</span>
+                    <span class="metric-value" id="wsStatus">
+                        <span class="status-indicator status-offline"></span>
+                        连接中...
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">GPS数据</span>
+                    <span class="metric-value" id="gpsDataStatus">
+                        <span class="status-indicator status-offline"></span>
+                        等待数据
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">消息计数</span>
+                    <span class="metric-value" id="messageCount">0</span>
+                </div>
+            </div>
+
+            <!-- GPS信息 -->
+            <div class="status-card">
+                <div class="status-header">
+                    <div class="status-icon gps">🛰️</div>
+                    <div class="status-title">GPS信息</div>
+                </div>
+                <div class="coordinates" id="coordinates">
+                    纬度: --<br>
+                    经度: --<br>
+                    消息ID: --<br>
+                    源节点: --
+                </div>
+                <div class="metric">
+                    <span class="metric-label">速度</span>
+                    <span class="metric-value" id="speed">-- km/h</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">数据质量</span>
+                    <span class="metric-value">
+                        <span class="data-quality-indicator" id="dataQuality">未知</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- 位置信息 -->
+            <div class="status-card">
+                <div class="status-header">
+                    <div class="status-icon location">📍</div>
+                    <div class="status-title">位置信息</div>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">当前地址</span>
+                    <span class="metric-value" id="currentAddress">获取中...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">移动距离</span>
+                    <span class="metric-value" id="totalDistance">0 m</span>
+                </div>
+            </div>
+
+            <!-- 桥接器统计 -->
+            <div class="status-card">
+                <div class="status-header">
+                    <div class="status-icon bridge">🌉</div>
+                    <div class="status-title">桥接器状态</div>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">桥接器名称</span>
+                    <span class="metric-value" id="bridgeName">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">桥接消息数</span>
+                    <span class="metric-value" id="bridgeMessageCount">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">运行时间</span>
+                    <span class="metric-value" id="bridgeUptime">0h 0m</span>
+                </div>
+            </div>
+
+            <!-- 控制选项 -->
+            <div class="status-card">
+                <div class="trail-toggle">
+                    <span>显示轨迹</span>
+                    <div class="toggle-switch" id="trailToggle">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="control-buttons">
+                    <button class="btn" onclick="centerMap()">🎯 居中</button>
+                    <button class="btn secondary" onclick="clearTrail()">🗑️ 清除轨迹</button>
+                </div>
+            </div>
+
+            <!-- 消息显示区域 -->
+            <div id="messageArea"></div>
+
+            <div class="timestamp" id="lastUpdate">
+                最后更新: --
+            </div>
+        </div>
+
+        <!-- 地图容器 -->
+        <div class="map-container">
+            <div id="mapContainer"></div>
+        </div>
+    </div>
+
+    <!-- 外部JavaScript文件 -->
+    <script src="js/gps_monitor.js"></script>
+</body>
+</html>
