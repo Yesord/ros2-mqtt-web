@@ -52,4 +52,6 @@ http://localhost:8080
 ```
 
 # 参数配置
+## MQTT桥接节点配置
 参考[./dev_ws/src/ros_mqtt_bridge_node/README.md](./dev_ws/src/ros_mqtt_bridge_node/README.md)
+更改[yaml文件](./dev_ws/src/ros_mqtt_bridge_node/config/multi_bridge_config.yaml)
