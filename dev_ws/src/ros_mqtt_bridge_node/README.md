@@ -203,12 +203,14 @@ ros2 param list /multi_bridge_manager
    ```bash
    mosquitto_sub -h 120.24.79.108 -p 1883 -u park -P 982m0niMlIWc -t "ros2/hello_world/data" -v
    ```
-   -h 服务器地址
-   -p 端口
-   -u 用户名
-   -P 密码
-   -t 订阅主题
-   -v 显示主题名和消息内容
+| 参数 | 解释 |
+|--------|--------|
+| -h | 服务器地址 |
+| -p | 端口 |
+| -u | 用户名 |
+| -P | 密码 |
+| -t | 订阅主题 |
+| -v | 显示主题名和消息内容 |
 
    
 ## 故障排除
