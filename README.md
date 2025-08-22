@@ -50,3 +50,6 @@ chmod +x start_web_panel.sh
 打开浏览器访问
 http://localhost:8080
 ```
+
+# 参数配置
+参考[该文件](./dev/src)
