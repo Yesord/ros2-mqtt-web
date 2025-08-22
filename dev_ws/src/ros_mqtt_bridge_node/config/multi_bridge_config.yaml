@@ -4,14 +4,14 @@ version: "1.0"
 
 # 全局MQTT配置
 mqtt_global:
-  broker_host: "localhost"
+  broker_host: "120.24.79.108"
   broker_port: 1883
   topic_prefix: "ros2"
   client_id_prefix: "ros_mqtt_bridge"
-  keepalive: 120  # 心跳间隔
+  keepalive: 30  # 心跳间隔
   qos: 1 # 此MQTT的QoS等级 0 最多交付一次 1 至少交付一次 2 只交付一次
-  username: ""
-  password: ""
+  username: "zone"
+  password: "NeverGiveUp"
 
 # 全局桥接配置
 bridge_global:
