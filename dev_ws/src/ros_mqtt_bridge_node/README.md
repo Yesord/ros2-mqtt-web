@@ -201,9 +201,16 @@ ros2 param list /multi_bridge_manager
 
 3. 使用MQTT客户端订阅消息:
    ```bash
-   mosquitto_sub -h localhost -t "ros2/hello_world"
+   mosquitto_sub -h 120.24.79.108 -p 1883 -u park -P 982m0niMlIWc -t "ros2/hello_world/data" -v
    ```
+   -h 服务器地址
+   -p 端口
+   -u 用户名
+   -P 密码
+   -t 订阅主题
+   -v 显示主题名和消息内容
 
+   
 ## 故障排除
 
 1. **MQTT连接失败**: 检查MQTT服务器地址和端口是否正确
