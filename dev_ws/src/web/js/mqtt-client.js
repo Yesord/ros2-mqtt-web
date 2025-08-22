@@ -7,7 +7,7 @@ class MQTTClient {
         this.isConnected = false;
         this.config = {
             host: 'localhost',
-            port: 8083,
+            port: 9001,
             username: '',
             password: '',
             topicPrefix: 'ros2'

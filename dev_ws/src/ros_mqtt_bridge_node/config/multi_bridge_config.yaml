@@ -4,14 +4,14 @@ version: "1.0"
 
 # 全局MQTT配置
 mqtt_global:
-  broker_host: "localhost"
+  broker_host: "120.24.79.108"
   broker_port: 1883
   topic_prefix: "ros2"
   client_id_prefix: "ros_mqtt_bridge"
-  keepalive: 120  # 增加心跳间隔，避免频繁重连
-  qos: 1
-  username: ""
-  password: ""
+  keepalive: 30  # 心跳间隔
+  qos: 1 # 此MQTT的QoS等级 0 最多交付一次 1 至少交付一次 2 只交付一次
+  username: "zone"
+  password: "NeverGiveUp"
 
 # 全局桥接配置
 bridge_global:
@@ -35,8 +35,8 @@ bridges:
     mqtt_config:
       topic_name: "hello_world" # MQTT主题名 (不含前缀)
       topic_suffix: "data" # MQTT主题后缀
-      qos: 0 # 此桥接器的QoS等级 0 最多交付一次 1 至少交付一次 2 只交付一次
-      retain: false # 是否保留消息
+      qos: 0 # 此桥接器的QoS等级 
+      retain: false # 是否保留消息 
     metadata:
       source_node: "hello_world_publisher" # 源ROS节点名
       frame_id: "hello_world_frame" # 坐标系ID
@@ -58,7 +58,7 @@ bridges:
       source_node: "teleop_turtle"
       frame_id: "turtle_frame"
   
-  - name: "IMU_bridge" 
+  - name: "GPS_bridge" 
     description: "GPS经纬度数据桥接"
     enabled: true
     ros_config:

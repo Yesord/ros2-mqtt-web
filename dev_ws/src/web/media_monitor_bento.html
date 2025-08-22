@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2 MQTT 图像流监控</title>
+    <link rel="stylesheet" href="css/media_monitor_bento.css">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- 引入 js-yaml 用于解析 YAML 配置 -->
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+</head>
+<body>
+    <div class="bento-container">
+        <!-- 头部状态卡片 -->
+        <div class="bento-card header-card">
+            <div class="card-content">
+                <div class="title-section">
+                    <div class="app-icon">📷</div>
+                    <div class="title-text">
+                        <h1>图像流监控</h1>
+                        <p>实时Base64图像解码显示</p>
+                    </div>
+                </div>
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-indicator disconnected"></div>
+                    <span class="status-text">未连接</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 连接配置卡片 -->
+        <div class="bento-card config-card">
+            <div class="card-header">
+                <h3>连接设置</h3>
+                <button id="toggleConfig" class="toggle-btn">∧</button>
+            </div>
+            <div class="card-content" id="configContent">
+                <div class="input-group">
+                    <label>MQTT服务器</label>
+                    <input type="text" id="brokerHost" value="localhost" placeholder="localhost">
+                </div>
+                <div class="input-group">
+                    <label>端口</label>
+                    <input type="number" id="brokerPort" value="9001" placeholder="9001">
+                </div>
+                <div class="input-group">
+                    <label>客户端ID</label>
+                    <input type="text" id="clientId" value="monitor_client" placeholder="monitor_client">
+                </div>
+                <div class="connection-buttons">
+                    <button id="connectBtn" class="primary-btn">连接</button>
+                    <button id="disconnectBtn" class="secondary-btn" disabled>断开</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主题订阅卡片 -->
+        <div class="bento-card subscription-card">
+            <div class="card-header">
+                <h3>图像话题</h3>
+                <div class="topic-input-group">
+                    <input type="text" id="topicInput" placeholder="ros2/image_compressed/data">
+                    <button id="addTopicBtn" class="add-btn">+</button>
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="preset-topics">
+                    <button class="preset-topic-btn" data-topic="ros2/image_compressed/data">
+                        🎥 压缩图像流
+                    </button>
+                    <button class="preset-topic-btn" data-topic="ros2/image_raw/data">
+                        📷 原始图像
+                    </button>
+                    <button class="preset-topic-btn" data-topic="ros2/camera/image">
+                        📸 相机图像
+                    </button>
+                </div>
+                <div class="active-topics" id="activeTopicsList">
+                    <!-- 活跃话题列表 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 视频流显示卡片 -->
+        <div class="bento-card video-stream-card">
+            <div class="card-header">
+                <h3>实时视频流</h3>
+                <div class="stream-controls">
+                    <button id="playBtn" class="control-btn">▶️</button>
+                    <button id="pauseBtn" class="control-btn">⏸️</button>
+                    <button id="fullscreenBtn" class="control-btn">⛶</button>
+                    <span class="fps-indicator" id="fpsDisplay">0 FPS</span>
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="video-container" id="videoContainer">
+                    <canvas id="videoCanvas" width="640" height="480"></canvas>
+                    <div class="video-overlay">
+                        <div class="no-signal" id="noSignal">
+                            <div class="no-signal-icon">📺</div>
+                            <p>等待图像数据...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最新图像卡片 -->
+        <div class="bento-card latest-image-card">
+            <div class="card-header">
+                <h3>最新图像</h3>
+                <div class="image-controls">
+                    <button id="saveImageBtn" class="control-btn">💾</button>
+                    <button id="clearImageBtn" class="control-btn">�️</button>
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="image-container" id="imageContainer">
+                    <img id="latestImage" alt="最新图像">
+                    <div class="image-info" id="imageInfo">
+                        <span class="timestamp">--:--:--</span>
+                        <span class="dimensions">-- x --</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计信息卡片 -->
+        <div class="bento-card stats-card">
+            <div class="card-header">
+                <h3>实时统计</h3>
+            </div>
+            <div class="card-content">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalMessagesCount">0</div>
+                        <div class="stat-label">总消息数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalImagesCount">0</div>
+                        <div class="stat-label">图像数量</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="dataTransferredCount">0 MB</div>
+                        <div class="stat-label">数据传输</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="sessionTimeCount">00:00:00</div>
+                        <div class="stat-label">会话时间</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制面板卡片 -->
+        <div class="bento-card controls-card">
+            <div class="card-header">
+                <h3>显示控制</h3>
+            </div>
+            <div class="card-content">
+                <div class="control-group">
+                    <label>帧率限制</label>
+                    <div class="slider-container">
+                        <input type="range" id="frameRateSlider" min="1" max="60" value="30">
+                        <span id="frameRateValue">30 FPS</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>缓冲区大小</label>
+                    <div class="slider-container">
+                        <input type="range" id="bufferSizeSlider" min="10" max="100" value="30">
+                        <span id="bufferSizeValue">30 帧</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="toggle-switches">
+                        <label class="switch">
+                            <input type="checkbox" id="autoPlaySwitch" checked>
+                            <span class="slider-switch"></span>
+                            自动播放
+                        </label>
+                        <label class="switch">
+                            <input type="checkbox" id="loopPlaybackSwitch">
+                            <span class="slider-switch"></span>
+                            循环播放
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全屏查看器 -->
+    <div id="fullscreenModal" class="fullscreen-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>全屏查看</h3>
+                <button id="closeModalBtn" class="close-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <canvas id="fullscreenCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知系统 -->
+    <div id="notifications" class="notifications-container"></div>
+
+    <!-- 加载脚本 -->
+    <script src="js/media_monitor_bento.js"></script>
+    <script>
+    // 自动读取 config/media_monitor_config.yaml 并填充 MQTT 配置
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const resp = await fetch('config/media_monitor_config.yaml');
+            if (!resp.ok) return;
+            const yamlText = await resp.text();
+            const config = jsyaml.load(yamlText);
+            if (config && config.mqtt) {
+                const hostInput = document.getElementById('brokerHost');
+                const portInput = document.getElementById('brokerPort');
+                const clientIdInput = document.getElementById('clientId');
+                if (hostInput) hostInput.value = config.mqtt.host || '';
+                if (portInput) portInput.value = config.mqtt.port || '';
+                if (clientIdInput && config.mqtt.client_id) clientIdInput.value = config.mqtt.client_id;
+            }
+        } catch (e) {
+            console.warn('无法加载媒体监控MQTT配置:', e);
+        }
+    });
+    </script>
+</body>
+</html>

@@ -13,8 +13,11 @@
 
 0.**依赖安装**
 ```bash
-# 安装 MQTT 服务器和客户端
-sudo apt update && sudo apt install -y mosquitto mosquitto-clients
+# 安装 MQTT 服务器（server机）
+sudo apt update && sudo apt install -y mosquitto 
+
+# 安装 MQTT 客户端(client机)
+sudo apt update && sudo apt install -y mosquitto-clients
 
 # 安装 Python MQTT 客户端库（兼容版本）
 pip3 install paho-mqtt==1.6.1
@@ -37,18 +40,34 @@ sudo systemctl start mosquitto
 # 终端1: 启动hello world发布者
 ros2 run hello_world_node hello_world_publisher
 # 终端2: 启动MQTT桥接节点
-ros2 run ros_mqtt_bridge_node hello_world_mqtt_bridge
+ros2 run ros_mqtt_bridge_node multi_bridge_manager
+# 目前测试使用 ros_domain_id 一致的另一个ROS2上跑bag
+# export ROS_DOMAIN_ID=66
+
 ```
+
+```bash
+
+# 一键启动 dev_ws目录下
+chmod +x ./start_ros_mqtt_node.sh
+./start_ros_mqtt_node.sh
+
+```
+
 4. **启动Web监控**
 ```bash
 cd /src/web
-chmod +x start_web_panel.sh
-./start_web_panel.sh 
+chmod +x start_monitoring_web.sh
+./start_monitoring_web.sh 
 ```
+
 5. **访问监控界面**
 ```bash
-打开浏览器访问
-http://localhost:8080
+打开浏览器访问 [localhost可以替换成你的服务器地址]
+http://localhost:8080/index.html
+http://localhost:8080/media_monitor_bento.html
+http://localhost:8080/ros2_mqtt_monitor.html
+http://localhost:8080/hello_world_monitor.html
 ```
 
 # 参数配置

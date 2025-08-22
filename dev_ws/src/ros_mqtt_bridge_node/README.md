@@ -78,11 +78,6 @@ ros2 run ros_mqtt_bridge_node multi_bridge_manager --ros-args \
 ros2 launch ros_mqtt_bridge_node multi_bridge_manager.launch.py
 ```
 
-### 方法4: 使用conda环境运行
-
-```bash
-./run_with_conda.sh
-```
 
 ## 配置文件
 
