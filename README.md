@@ -52,4 +52,4 @@ http://localhost:8080
 ```
 
 # 参数配置
-参考[该文件](./dev/src)
+参考[./dev_ws/src/ros_mqtt_bridge_node/README.md](./dev_ws/src/ros_mqtt_bridge_node/README.md)
